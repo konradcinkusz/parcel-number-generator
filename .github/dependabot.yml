@@ -1,0 +1,35 @@
+version: 2
+
+# "We'll update it later" is not a plan, and a vulnerable pin nobody owns is how a repo that
+# builds today stops building safely. NuGetAudit already fails the build on an advisory —
+# this is what stops that failure being a surprise.
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR per family. Ten separate bumps for one coordinated release is noise that
+      # trains reviewers to rubber-stamp.
+      aspnetcore:
+        patterns: ["Microsoft.AspNetCore.*", "Microsoft.Extensions.*"]
+      entity-framework:
+        patterns: ["Microsoft.EntityFrameworkCore.*", "Npgsql.*"]
+      opentelemetry:
+        patterns: ["OpenTelemetry.*"]
+      aspire:
+        patterns: ["Aspire.*"]
+      test:
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/ParcelNumberGenerator.Api
+    schedule:
+      interval: weekly

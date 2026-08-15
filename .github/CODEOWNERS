@@ -1,0 +1,11 @@
+# Default owner for everything.
+*                                       @konradcinkusz
+
+# Security-relevant paths, listed explicitly so a change to one cannot ride along in a
+# large diff without the owner being requested by name.
+/.github/workflows/                     @konradcinkusz
+/.gitleaks.toml                         @konradcinkusz
+/src/ParcelNumberGenerator.ServiceDefaults/ @konradcinkusz
+/src/ParcelNumberGenerator.Api/Extensions/StartupGuard.cs @konradcinkusz
+/flyio/                                 @konradcinkusz
+/docs/architecture/                     @konradcinkusz

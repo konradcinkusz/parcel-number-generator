@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A migration set is provider-specific: the DDL a migration emits differs between
+       PostgreSQL and SQL Server, so one shared set cannot serve both. One assembly per
+       provider is what lets DATABASE_PROVIDER stay a configuration switch (P4). -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.Data/ParcelNumberGenerator.Data.csproj" />
+  </ItemGroup>
+
+</Project>

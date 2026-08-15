@@ -1,0 +1,43 @@
+name: Bug report
+description: Something the service does that it should not, or does not do that it should.
+labels: [bug]
+
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The observed behaviour, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: >-
+        The request you made and the response you got. Include the pool configuration
+        (`GET /pool` output is ideal) — most allocation behaviour depends on how full the
+        pool is.
+      placeholder: |
+        curl -X POST http://localhost:5180/parcel-numbers?count=5
+        → 503 { "title": "Allocation contended" }
+        GET /pool → { "capacity": 1000, "used": 998, ... }
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Image tag, or commit SHA.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Database provider
+      options: [PostgreSQL, SqlServer, InMemory, "Not sure"]
+    validations:
+      required: true

@@ -1,0 +1,44 @@
+# A one-command way to run the service against a real Postgres without the .NET SDK.
+#
+# The credentials below are deliberately weak and deliberately committed: this file exists
+# for local evaluation and nothing else. It is allowlisted in .gitleaks.toml for exactly
+# that reason. Never point it at anything that matters.
+#
+# For development with the SDK, prefer the AppHost — it wires the same topology and gives
+# you the dashboard:  dotnet run --project src/ParcelNumberGenerator.AppHost
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: parcelnumbers
+      POSTGRES_USER: parcelnumbers
+      POSTGRES_PASSWORD: local-development-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parcelnumbers"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/ParcelNumberGenerator.Api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Development, so the startup guard's production requirements do not apply — this
+      # compose file has no identity provider to point at.
+      ASPNETCORE_ENVIRONMENT: Development
+      DATABASE_PROVIDER: PostgreSQL
+      ConnectionStrings__parcelnumbersdb: "Host=db;Database=parcelnumbers;Username=parcelnumbers;Password=local-development-only"
+      Pool__From: "1"
+      Pool__To: "9999999"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

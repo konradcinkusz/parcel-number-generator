@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  SOLUTION: ParcelNumberGenerator.slnx
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --no-restore --configuration Release
+
+      - name: Test
+        run: >-
+          dotnet test ${{ env.SOLUTION }} --no-build --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore
+
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Verify formatting
+        run: dotnet format ${{ env.SOLUTION }} --verify-no-changes --severity error
+
+  migrations:
+    name: Migrations match the model
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install dotnet-ef
+        run: |
+          dotnet tool install --global dotnet-ef
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      # The guard that matters once a migration set exists. A model change without a matching
+      # migration is invisible in development, where the in-memory provider builds the schema
+      # from the model itself — and then fails on the first real deploy, because MigrateAsync
+      # only applies what is committed.
+      - name: Check for pending model changes
+        run: |
+          set -euo pipefail
+          for provider in PostgreSQL SqlServer; do
+            echo "── ${provider} ──"
+            ConnectionStrings__parcelnumbersdb="Host=localhost;Database=ci" \
+            DATABASE_PROVIDER="${provider}" \
+            dotnet ef migrations has-pending-model-changes \
+              --project "src/ParcelNumberGenerator.Migrations.${provider}" \
+              --startup-project src/ParcelNumberGenerator.Api \
+              --context ParcelNumbersDbContext
+          done
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/ParcelNumberGenerator.Api/Dockerfile
+          push: false
+          load: true
+          tags: parcelnumbergenerator-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The startup guard is a security control, so it is tested like one. Without this the
+      # guard could be deleted and every other job would stay green.
+      - name: A production image refuses to start unconfigured
+        run: |
+          set +e
+          output=$(docker run --rm -e ASPNETCORE_ENVIRONMENT=Production parcelnumbergenerator-api:ci 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ $status -eq 0 ]; then
+            echo "::error::Expected the service to refuse to start with no database configured"
+            exit 1
+          fi
+          echo "$output" | grep -q "parcelnumbersdb" || {
+            echo "::error::Startup failure did not name the missing connection string"
+            exit 1
+          }

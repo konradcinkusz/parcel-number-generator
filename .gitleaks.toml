@@ -1,0 +1,18 @@
+# gitleaks configuration. Extends the default rule set rather than replacing it.
+#
+# P5 of the architecture standard makes a scanner mandatory and is blunt about why it is a
+# job rather than a review habit: "a repository without one is assumed to contain
+# credentials until proven otherwise". This repository's own history is the argument — the
+# code this replaced hardcoded a SQL Server connection string in five separate files.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local-only development values that are documented as such"
+
+paths = [
+  # Ships a throwaway Postgres password for `docker compose up`, and says so in the file.
+  '''docker-compose\.yml''',
+  '''src/ParcelNumberGenerator\.Api/appsettings\.Development\.json''',
+]

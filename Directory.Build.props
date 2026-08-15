@@ -1,0 +1,25 @@
+<Project>
+
+  <!-- Settings every project in the solution inherits. Without this each .csproj carries its
+       own copy and they drift; the estate standard is one place per solution-wide setting. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Warnings are errors in CI and locally alike. The legacy code this replaced compiled
+         with warnings nobody read, which is how `throw ex` survived in four files. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Company>konradcinkusz</Company>
+    <Product>Parcel Number Generator</Product>
+    <RepositoryUrl>https://github.com/konradcinkusz/PNG</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

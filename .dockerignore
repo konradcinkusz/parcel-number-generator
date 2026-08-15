@@ -1,0 +1,15 @@
+# Exclusion-based: the build context is the repository root because the Dockerfile restores
+# from several project files, so everything that is not source has to be named here or it
+# ships in the context of every image build.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.user
+.git/
+.github/
+docs/
+flyio/
+scripts/
+tests/
+*.md

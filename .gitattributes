@@ -1,0 +1,20 @@
+# Real rules, not a commented-out template. The repository this replaced was authored on
+# Windows with CRLF throughout; normalizing on checkin is what stops the next cross-platform
+# clone from showing every file as modified.
+
+* text=auto eol=lf
+
+*.sln text eol=crlf
+*.csproj text eol=lf
+*.props text eol=lf
+*.cs text eol=lf diff=csharp
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.gz binary

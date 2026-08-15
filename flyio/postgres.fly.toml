@@ -1,0 +1,26 @@
+# The database. Stateful, so it gets no public listener at all (P7).
+#
+# There is no [http_service] and no [[services]] block here on purpose: the only route to
+# this app is Fly's private 6PN network, at png-parcelnumbers-db.internal:5432. A stateful
+# app with a public listener is one credential-stuffing run away from being someone else's.
+
+app = "png-parcelnumbers-db"
+primary_region = "fra"
+
+[build]
+  image = "postgres:17-alpine"
+
+[env]
+  # initdb refuses a data directory that is not empty, and a Fly volume root always carries
+  # lost+found — so the cluster lives in a subdirectory of the mount, not at its root.
+  PGDATA = "/var/lib/postgresql/data/pgdata"
+
+[mounts]
+  source = "pgdata"
+  destination = "/var/lib/postgresql/data"
+  initial_size = "3gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1
