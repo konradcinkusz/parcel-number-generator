@@ -15,7 +15,7 @@ WORKDIR /src
 
 # Project files and the central version files first, so a source-only change does not
 # invalidate the restore layer.
-COPY Directory.Build.props Directory.Packages.props ./
+COPY Directory.Build.props Directory.Packages.props global.json ./
 COPY src/ParcelNumberGenerator.Api/ParcelNumberGenerator.Api.csproj src/ParcelNumberGenerator.Api/
 COPY src/ParcelNumberGenerator.Domain/ParcelNumberGenerator.Domain.csproj src/ParcelNumberGenerator.Domain/
 COPY src/ParcelNumberGenerator.Data/ParcelNumberGenerator.Data.csproj src/ParcelNumberGenerator.Data/

@@ -1,0 +1,27 @@
+<Project>
+
+  <!-- Inherit everything from the repository root, then relax what only applies to tests. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!--
+      xunit.v3 runs on Microsoft.Testing.Platform. The .NET 10 SDK refuses to fall back to
+      the VSTest target, so `dotnet test` has to be told to drive MTP instead. Without
+      this the suite does not run at all.
+    -->
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+    <!--
+      CA1707 forbids underscores in member names. Test methods are the one place the
+      underscore convention earns its keep: the method name is the sentence the runner
+      prints when it fails, and Legacy_update_no_longer_changes_the_identifier reads
+      better in a CI log than LegacyUpdateNoLongerChangesTheIdentifier. Scoped to tests/
+      so production code keeps the rule.
+    -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>

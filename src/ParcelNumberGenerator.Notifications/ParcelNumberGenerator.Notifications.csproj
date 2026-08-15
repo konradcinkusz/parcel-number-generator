@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <UserSecretsId>png-notifications</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Design-time only: the EF tooling requires it on the startup project to build a
+      migration. PrivateAssets keeps it out of the published image.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.Contracts/ParcelNumberGenerator.Contracts.csproj" />
+    <ProjectReference Include="../ParcelNumberGenerator.Notifications.Data/ParcelNumberGenerator.Notifications.Data.csproj" />
+    <ProjectReference Include="../ParcelNumberGenerator.ServiceDefaults/ParcelNumberGenerator.ServiceDefaults.csproj" />
+
+    <!--
+      The provider-specific migration assemblies are referenced so they ship in the image,
+      but nothing in this project compiles against them: the assembly names are resolved
+      by EF at runtime from configuration (P4).
+    -->
+    <ProjectReference Include="../ParcelNumberGenerator.Notifications.Migrations.PostgreSQL/ParcelNumberGenerator.Notifications.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="../ParcelNumberGenerator.Notifications.Migrations.SqlServer/ParcelNumberGenerator.Notifications.Migrations.SqlServer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ParcelNumberGenerator.Notifications.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect x="3" y="8" width="26" height="18" rx="3" fill="#2a78d6"/>
+  <path d="M3 13h26" stroke="#fcfcfb" stroke-width="2"/>
+  <text x="16" y="23.5" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#fcfcfb" text-anchor="middle">PNG</text>
+</svg>

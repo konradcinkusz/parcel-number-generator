@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PNG — Parcel Operations Console</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1>PNG <span class="masthead-sub">Parcel Operations Console</span></h1>
+      <button id="refresh" class="ghost" type="button" title="Refresh pool and notifications">↻ Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Pool: the finite resource this system exists to protect. -->
+    <section class="card" id="pool-card" aria-labelledby="pool-title">
+      <div class="card-head">
+        <h2 id="pool-title">Number pool</h2>
+        <span id="pool-strategy" class="chip" hidden></span>
+      </div>
+
+      <div class="stat-row" id="pool-stats">
+        <div class="stat"><span class="stat-label">Capacity</span><span class="stat-value" id="stat-capacity">—</span></div>
+        <div class="stat"><span class="stat-label">Issued</span><span class="stat-value" id="stat-used">—</span></div>
+        <div class="stat"><span class="stat-label">Remaining</span><span class="stat-value" id="stat-remaining">—</span></div>
+        <div class="stat"><span class="stat-label">Density</span><span class="stat-value" id="stat-density">—</span></div>
+      </div>
+
+      <div class="meter" role="img" id="meter" aria-label="Pool utilization">
+        <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+        <span class="meter-label" id="meter-label">—</span>
+      </div>
+
+      <p class="fineprint" id="pool-range">—</p>
+    </section>
+
+    <!-- Allocate: the operation that permanently consumes the pool. -->
+    <section class="card" aria-labelledby="allocate-title">
+      <div class="card-head"><h2 id="allocate-title">Issue parcel numbers</h2></div>
+
+      <form id="allocate-form" class="inline-form">
+        <label for="allocate-count">Count</label>
+        <input id="allocate-count" name="count" type="number" min="1" max="1000" value="1" required>
+        <button type="submit" class="primary">Issue</button>
+      </form>
+
+      <div id="allocate-result" class="result-block" hidden>
+        <p id="allocate-summary" class="result-summary"></p>
+        <ul id="allocate-numbers" class="number-list"></ul>
+      </div>
+    </section>
+
+    <!-- Lookup: is this number issued? is it allocatable at all? -->
+    <section class="card" aria-labelledby="lookup-title">
+      <div class="card-head"><h2 id="lookup-title">Look up a number</h2></div>
+
+      <form id="lookup-form" class="inline-form">
+        <label for="lookup-number" class="visually-hidden">Parcel number</label>
+        <input id="lookup-number" name="number" type="text" inputmode="numeric"
+               placeholder="4260013 or PNG-04260013-4" required>
+        <button type="submit" class="primary">Check</button>
+      </form>
+
+      <p id="lookup-result" class="result-summary" hidden></p>
+    </section>
+
+    <!-- Notifications: what the warehouse raised, and what still needs a human. -->
+    <section class="card card-wide" aria-labelledby="notifications-title">
+      <div class="card-head">
+        <h2 id="notifications-title">Notifications</h2>
+        <span class="chip" id="notifications-counts" hidden></span>
+      </div>
+
+      <form id="raise-form" class="raise-form">
+        <div class="raise-grid">
+          <label>Message
+            <input id="raise-body" name="body" type="text" maxlength="512" placeholder="Damaged carton at goods-in bay 3" required>
+          </label>
+          <label>Parcel number <span class="optional">optional</span>
+            <input id="raise-parcel" name="parcelNumber" type="text" maxlength="64" placeholder="any dialect — 12345678, WMS/12345678…">
+          </label>
+          <label>Severity
+            <select id="raise-severity" name="severity">
+              <option value="0">Unspecified</option>
+              <option value="1">Information</option>
+              <option value="2" selected>Warning</option>
+              <option value="3">Error</option>
+            </select>
+          </label>
+          <label class="checkbox"><input id="raise-ack" name="ack" type="checkbox" checked> Needs acknowledgement</label>
+          <label class="checkbox"><input id="raise-pinned" name="pinned" type="checkbox"> Pin to top</label>
+          <button type="submit" class="primary">Raise</button>
+        </div>
+      </form>
+
+      <form id="filter-form" class="filter-row" aria-label="Filter notifications">
+        <input id="filter-parcel" type="text" placeholder="Filter by parcel number">
+        <select id="filter-severity">
+          <option value="">Any severity</option>
+          <option value="1">Information</option>
+          <option value="2">Warning</option>
+          <option value="3">Error</option>
+        </select>
+        <label class="checkbox"><input id="filter-outstanding" type="checkbox"> Outstanding only</label>
+        <button type="submit" class="ghost">Apply</button>
+      </form>
+
+      <ul id="notification-list" class="notification-list" aria-live="polite"></ul>
+      <p id="notifications-empty" class="fineprint" hidden>No notifications match the current filter.</p>
+
+      <nav class="pager" aria-label="Notification pages">
+        <button id="page-prev" class="ghost" type="button" disabled>← Newer</button>
+        <span id="page-label" class="fineprint"></span>
+        <button id="page-next" class="ghost" type="button" disabled>Older →</button>
+      </nav>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

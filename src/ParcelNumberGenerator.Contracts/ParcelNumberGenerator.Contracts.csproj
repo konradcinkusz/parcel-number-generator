@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P2: where two services need the same shape, it goes in a Contracts project — not in
+    the kernel, however identical the two copies need to be. This project therefore has
+    no dependencies at all: anything that compiles against it inherits nothing else.
+  -->
+
+</Project>

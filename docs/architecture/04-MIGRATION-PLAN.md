@@ -103,8 +103,8 @@ anything issues a number that reaches a parcel:
 
 ## Phase 8 — Close the remaining deviations ⬜
 
-The three open rows in [`DEVIATIONS.md`](DEVIATIONS.md): the deploy job, the authenticated
-production deployment, and the absence of a real-provider integration test. Each has an owner
+The open rows in [`DEVIATIONS.md`](DEVIATIONS.md) — deployment, the identity provider, the
+real-provider integration test, and SAST on a private repository. Each has an owner
 question rather than a technical blocker.
 
 ## Phase 9 — Load-test the density curve ⬜
@@ -114,3 +114,13 @@ The `adaptive` strategy's escalation point is reasoned about and unit-tested, bu
 that matters: allocations per second, and round trips per allocation, at 50%, 90%, 99% and
 99.9% full. If the scan turns out to dominate earlier than expected, the fix is a third
 strategy — one class and one line — not a redesign.
+
+## Phase 10 — Consolidate the estate ✅ (2026-08-15)
+
+The notification service, its contracts, data layer, migrations and tests transferred in
+from the deprecated `komunikaty` repository, renamed to `ParcelNumberGenerator.*`; the
+operator console and its BFF were added as the system's one public face; the kernel,
+security posture, test stack and CI hygiene were unified. What was harmonized and why is
+[ADR-0004](../decisions/0004-one-repository-for-the-png-system.md). Phase 6 (first
+deployment) now covers five Fly apps rather than two, and the deploy workflow exists —
+DEV-1 tracks the remaining step: secrets, then one `v*` tag.

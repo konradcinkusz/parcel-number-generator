@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Holds the PostgreSQL migration set, and nothing else.
+
+    One migration set cannot serve both providers: the generated DDL differs by provider,
+    down to column types and index expressions. Keeping each provider's set in its own
+    assembly is what lets DATABASE_PROVIDER select between them at runtime (P4).
+
+    This references ParcelNumberGenerator.Notifications.Data rather than ParcelNumberGenerator.Notifications, so that the
+    service can reference it back without a cycle — which is what `dotnet ef` requires to
+    load a migrations assembly at all. The EF provider packages arrive from the service's
+    own reference to the kernel; nothing extra is referenced here.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>ParcelNumberGenerator.Notifications.Migrations.PostgreSQL</RootNamespace>
+
+    <!--
+      Everything in Migrations/ is emitted by `dotnet ef` and regenerated on the next
+      schema change, so hand-fixing analyzer findings here is work that gets overwritten.
+      The model these are generated from is analyzed normally, in ParcelNumberGenerator.Notifications.Data.
+    -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.Notifications.Data/ParcelNumberGenerator.Notifications.Data.csproj" />
+  </ItemGroup>
+
+</Project>

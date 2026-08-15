@@ -1,0 +1,36 @@
+# The notification service's database — P7's stateful shape, P3's one-database-one-owner.
+#
+# Deliberately has no [http_service] and no [[services]] block at all: this app is reached
+# only over Fly's private 6PN network at png-notifications-db.internal:5432. No public
+# port, no public IP, no proxy smoke checks.
+
+app = "png-notifications-db"
+primary_region = "fra"
+
+[build]
+  # A vanilla postgres image, NOT Fly's managed `postgres-flex`. postgres-flex expects
+  # `fly postgres create`-style bootstrapping — cluster credentials and a multi-machine
+  # setup — and against a plain `flyctl deploy` it simply never initializes, with no
+  # useful error. A stock image is what a plain deploy knows how to initialize.
+  image = "postgres:17-alpine"
+
+[env]
+  POSTGRES_USER = "png"
+  POSTGRES_DB = "notificationsdb"
+  # initdb requires an empty data directory, and the mount root carries lost+found. The
+  # subdirectory is not cosmetic: without it the database never initializes.
+  PGDATA = "/var/lib/postgresql/data/pgdata"
+
+[[mounts]]
+  source = "png_notifications_pgdata"
+  destination = "/var/lib/postgresql/data"
+  initial_size = "3gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1
+
+# Deploy this app with `--ha=false`. An app with a volume that gets scaled past one
+# machine brings the second one up against an empty volume, and it is not obvious from
+# the outside which machine a given connection reached.

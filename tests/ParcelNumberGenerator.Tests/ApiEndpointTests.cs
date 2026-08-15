@@ -17,8 +17,8 @@ public sealed class ApiEndpointTests
         using ApiFactory factory = new();
         using HttpClient client = factory.CreateClient();
 
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(new Uri("/health", UriKind.Relative))).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(new Uri("/alive", UriKind.Relative))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(new Uri("/alive", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -27,10 +27,10 @@ public sealed class ApiEndpointTests
         using ApiFactory factory = new(from: 500, to: 600);
         using HttpClient client = factory.CreateClient();
 
-        HttpResponseMessage response = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null);
+        HttpResponseMessage response = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>();
+        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         Assert.True(body.Complete);
         Assert.Single(body.Numbers);
@@ -44,9 +44,9 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         HttpResponseMessage response = await client.PostAsync(
-            new Uri("/parcel-numbers?count=50", UriKind.Relative), null);
+            new Uri("/parcel-numbers?count=50", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
-        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>();
+        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         Assert.True(body.Complete);
 
@@ -62,8 +62,8 @@ public sealed class ApiEndpointTests
         using ApiFactory factory = new(from: 1, to: 5);
         using HttpClient client = factory.CreateClient();
 
-        await client.PostAsync(new Uri("/parcel-numbers?count=5", UriKind.Relative), null);
-        HttpResponseMessage response = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null);
+        await client.PostAsync(new Uri("/parcel-numbers?count=5", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -75,12 +75,12 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         HttpResponseMessage response = await client.PostAsync(
-            new Uri("/parcel-numbers?count=10", UriKind.Relative), null);
+            new Uri("/parcel-numbers?count=10", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
         // Partial success is still success for the five numbers that are now permanently
         // issued. Reporting it as an error would burn them silently.
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>();
+        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         Assert.False(body.Complete);
         Assert.Equal(10, body.Requested);
@@ -98,7 +98,7 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         HttpResponseMessage response = await client.PostAsync(
-            new Uri($"/parcel-numbers?count={count}", UriKind.Relative), null);
+            new Uri($"/parcel-numbers?count={count}", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -110,9 +110,9 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         HttpResponseMessage response = await client.PostAsync(
-            new Uri("/parcel-numbers?count=9", UriKind.Relative), null);
+            new Uri("/parcel-numbers?count=9", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
-        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>();
+        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         Assert.Equal([1, 2, 3, 4, 16, 17, 18, 19, 20], [.. body.Numbers.Order()]);
     }
@@ -123,9 +123,9 @@ public sealed class ApiEndpointTests
         using ApiFactory factory = new(from: 1, to: 100, exclusions: [(50, 59)]);
         using HttpClient client = factory.CreateClient();
 
-        await client.PostAsync(new Uri("/parcel-numbers?count=10", UriKind.Relative), null);
+        await client.PostAsync(new Uri("/parcel-numbers?count=10", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
-        PoolResponse? pool = await client.GetFromJsonAsync<PoolResponse>(new Uri("/pool", UriKind.Relative));
+        PoolResponse? pool = await client.GetFromJsonAsync<PoolResponse>(new Uri("/pool", UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.NotNull(pool);
         Assert.Equal(90, pool.Capacity);
@@ -141,13 +141,13 @@ public sealed class ApiEndpointTests
         using ApiFactory factory = new(from: 1, to: 10);
         using HttpClient client = factory.CreateClient();
 
-        HttpResponseMessage allocation = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null);
-        AllocationResponse? body = await allocation.Content.ReadFromJsonAsync<AllocationResponse>();
+        HttpResponseMessage allocation = await client.PostAsync(new Uri("/parcel-numbers", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        AllocationResponse? body = await allocation.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         int issued = body.Numbers[0];
 
         NumberStatusResponse? status = await client.GetFromJsonAsync<NumberStatusResponse>(
-            new Uri($"/parcel-numbers/{issued}", UriKind.Relative));
+            new Uri($"/parcel-numbers/{issued}", UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.NotNull(status);
         Assert.True(status.Used);
@@ -161,7 +161,7 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         NumberStatusResponse? status = await client.GetFromJsonAsync<NumberStatusResponse>(
-            new Uri("/parcel-numbers/9999", UriKind.Relative));
+            new Uri("/parcel-numbers/9999", UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.NotNull(status);
         Assert.False(status.Used);
@@ -176,13 +176,13 @@ public sealed class ApiEndpointTests
         using HttpClient client = factory.CreateClient();
 
         HttpResponseMessage response = await client.PostAsync(
-            new Uri("/parcel-numbers?count=20", UriKind.Relative), null);
+            new Uri("/parcel-numbers?count=20", UriKind.Relative), null, TestContext.Current.CancellationToken);
 
-        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>();
+        AllocationResponse? body = await response.Content.ReadFromJsonAsync<AllocationResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(body);
         Assert.Equal([.. Enumerable.Range(1, 20)], [.. body.Numbers.Order()]);
 
-        PoolResponse? pool = await client.GetFromJsonAsync<PoolResponse>(new Uri("/pool", UriKind.Relative));
+        PoolResponse? pool = await client.GetFromJsonAsync<PoolResponse>(new Uri("/pool", UriKind.Relative), TestContext.Current.CancellationToken);
         Assert.Equal("sequential-scan", pool?.Strategy);
     }
 

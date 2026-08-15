@@ -66,7 +66,7 @@ public sealed class SchemaTests
     private static string RepositoryRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ParcelNumberGenerator.slnx")))
         {
             directory = directory.Parent;
         }

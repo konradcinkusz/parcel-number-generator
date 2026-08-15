@@ -21,15 +21,45 @@ public sealed class SharedKernelTests
     [Fact]
     public void The_kernel_does_not_reference_the_domain_or_the_data_layer()
     {
+        // The notification assemblies are named as strings because this project does not
+        // reference them — which is itself the point: the kernel must stay loadable
+        // without any service's domain on the path.
         string[] forbidden =
         [
             typeof(NumberPool).Assembly.GetName().Name!,
             typeof(UsedNumber).Assembly.GetName().Name!,
+            "ParcelNumberGenerator.Contracts",
+            "ParcelNumberGenerator.Notifications",
+            "ParcelNumberGenerator.Notifications.Data",
         ];
 
         string[] referenced = [.. Kernel.GetReferencedAssemblies().Select(name => name.Name!)];
 
         Assert.Empty(referenced.Intersect(forbidden, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void The_kernel_declares_no_enums()
+    {
+        // P2's checklist names enums explicitly, because a domain enum in the kernel is
+        // how "just one shared type" starts. The kernel expresses its own choices as
+        // string constants instead — see DatabaseProviderExtensions.
+        Assert.Empty(Kernel.GetExportedTypes().Where(type => type.IsEnum).Select(type => type.FullName));
+    }
+
+    [Fact]
+    public void The_kernel_declares_no_entity_types()
+    {
+        // An entity would arrive as a type carrying DataAnnotations. The kernel takes its
+        // DbContext as a type parameter precisely so it never has to name one.
+        var suspects = Kernel.GetExportedTypes()
+            .Where(type => type.GetCustomAttributes()
+                .Any(attribute => attribute.GetType().Namespace?.StartsWith(
+                    "System.ComponentModel.DataAnnotations", StringComparison.Ordinal) is true))
+            .Select(type => type.FullName)
+            .ToList();
+
+        Assert.Empty(suspects);
     }
 
     [Fact]
@@ -67,7 +97,7 @@ public sealed class SharedKernelTests
     private static string RepositoryRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ParcelNumberGenerator.slnx")))
         {
             directory = directory.Parent;
         }
