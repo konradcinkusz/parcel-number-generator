@@ -2,13 +2,20 @@
   <Folder Name="/src/">
     <Project Path="src/ParcelNumberGenerator.Api/ParcelNumberGenerator.Api.csproj" />
     <Project Path="src/ParcelNumberGenerator.AppHost/ParcelNumberGenerator.AppHost.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Contracts/ParcelNumberGenerator.Contracts.csproj" />
     <Project Path="src/ParcelNumberGenerator.Data/ParcelNumberGenerator.Data.csproj" />
     <Project Path="src/ParcelNumberGenerator.Domain/ParcelNumberGenerator.Domain.csproj" />
     <Project Path="src/ParcelNumberGenerator.Migrations.PostgreSQL/ParcelNumberGenerator.Migrations.PostgreSQL.csproj" />
     <Project Path="src/ParcelNumberGenerator.Migrations.SqlServer/ParcelNumberGenerator.Migrations.SqlServer.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Notifications/ParcelNumberGenerator.Notifications.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Notifications.Data/ParcelNumberGenerator.Notifications.Data.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Notifications.Migrations.PostgreSQL/ParcelNumberGenerator.Notifications.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Notifications.Migrations.SqlServer/ParcelNumberGenerator.Notifications.Migrations.SqlServer.csproj" />
     <Project Path="src/ParcelNumberGenerator.ServiceDefaults/ParcelNumberGenerator.ServiceDefaults.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Web/ParcelNumberGenerator.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ParcelNumberGenerator.Notifications.Tests/ParcelNumberGenerator.Notifications.Tests.csproj" />
     <Project Path="tests/ParcelNumberGenerator.Tests/ParcelNumberGenerator.Tests.csproj" />
   </Folder>
 </Solution>

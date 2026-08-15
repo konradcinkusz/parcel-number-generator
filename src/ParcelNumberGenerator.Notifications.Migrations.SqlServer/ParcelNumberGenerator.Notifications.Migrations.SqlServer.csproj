@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Holds the SQL Server migration set, and nothing else. See the PostgreSQL project's
+    header for why the two sets cannot be shared.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>ParcelNumberGenerator.Notifications.Migrations.SqlServer</RootNamespace>
+
+    <!-- Generated code; see the PostgreSQL project for why analysis is off here. -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.Notifications.Data/ParcelNumberGenerator.Notifications.Data.csproj" />
+  </ItemGroup>
+
+</Project>

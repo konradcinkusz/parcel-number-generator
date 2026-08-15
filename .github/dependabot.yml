@@ -22,14 +22,30 @@ updates:
       aspire:
         patterns: ["Aspire.*"]
       test:
-        patterns: ["xunit*", "Microsoft.NET.Test.Sdk"]
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "Microsoft.AspNetCore.Mvc.Testing"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # One PR for the week's action bumps. Ungrouped, a routine Monday opens five PRs
+      # that all have to pass the same CI separately — the merged history of this repo
+      # shows exactly that morning.
+      actions:
+        patterns: ["*"]
 
   - package-ecosystem: docker
     directory: /src/ParcelNumberGenerator.Api
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/ParcelNumberGenerator.Notifications
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/ParcelNumberGenerator.Web
     schedule:
       interval: weekly

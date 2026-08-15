@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P3: this service owns its schema. The DbContext is its own project so the two
+    provider-specific migration assemblies can reference it without either of them
+    dragging in the service's transport layer.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- Table and index naming are relational concepts; the provider itself is not chosen here (P4). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.Contracts/ParcelNumberGenerator.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

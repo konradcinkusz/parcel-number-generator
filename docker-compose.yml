@@ -1,4 +1,6 @@
-# A one-command way to run the service against a real Postgres without the .NET SDK.
+# A one-command way to run the whole system against a real Postgres without the .NET SDK:
+# the generator API, the notification service, and the operator console on
+# http://localhost:8090.
 #
 # The credentials below are deliberately weak and deliberately committed: this file exists
 # for local evaluation and nothing else. It is allowlisted in .gitleaks.toml for exactly
@@ -21,6 +23,8 @@ services:
       retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Creates the second database on first boot — one instance, one database per service.
+      - ./scripts/compose-init-db.sql:/docker-entrypoint-initdb.d/10-notifications.sql:ro
 
   api:
     build:
@@ -39,6 +43,35 @@ services:
       Pool__To: "9999999"
     ports:
       - "8080:8080"
+
+  notifications:
+    build:
+      context: .
+      dockerfile: src/ParcelNumberGenerator.Notifications/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DATABASE_PROVIDER: PostgreSQL
+      ConnectionStrings__notificationsdb: "Host=db;Database=notifications;Username=parcelnumbers;Password=local-development-only"
+    ports:
+      - "8081:8080"
+
+  web:
+    build:
+      context: .
+      dockerfile: src/ParcelNumberGenerator.Web/Dockerfile
+    depends_on:
+      - api
+      - notifications
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # The proxy's candidate ladder, rung 1: explicit addresses (FRONTEND-BFF §5).
+      Services__Generator__BaseUrl: "http://api:8080"
+      Services__Notifications__BaseUrl: "http://notifications:8080"
+    ports:
+      - "8090:8080"
 
 volumes:
   pgdata:

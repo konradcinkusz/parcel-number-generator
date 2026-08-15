@@ -36,23 +36,37 @@ fi
 
 [ "$fail" -eq 0 ] || { printf '\n\033[31mFix the above and run again.\033[0m\n'; exit 1; }
 
-step "2. Restore and test"
+step "2. Repository tooling"
+git config core.hooksPath .githooks
+ok "pre-commit secret scan hook enabled (.githooks)"
+dotnet tool restore >/dev/null
+ok "dotnet-ef restored from dotnet-tools.json"
+
+step "3. Restore and test"
 dotnet restore ParcelNumberGenerator.slnx
-dotnet test ParcelNumberGenerator.slnx --nologo
+dotnet test --solution ParcelNumberGenerator.slnx
 
-step "3. What you can run now"
+step "4. What you can run now"
 cat <<'EOF'
-  In-memory, no dependencies — numbers are lost when the process stops:
-
-      dotnet run --project src/ParcelNumberGenerator.Api
-      curl -X POST 'http://localhost:5180/parcel-numbers?count=5'
-      curl http://localhost:5180/pool
-
-  With a real Postgres, via the Aspire composition root (needs Docker):
+  Everything at once, via the Aspire composition root (needs Docker):
 
       dotnet run --project src/ParcelNumberGenerator.AppHost
 
-  Secrets: none are required. In Production the service refuses to start without a
+  That brings up Postgres, the generator API, the notification service and the operator
+  console together, wired, with the dashboard. The console is the "web" resource's URL.
+
+  In-memory, no dependencies — data is lost when the processes stop:
+
+      dotnet run --project src/ParcelNumberGenerator.Api            # :5180
+      dotnet run --project src/ParcelNumberGenerator.Notifications  # :5181
+      dotnet run --project src/ParcelNumberGenerator.Web            # :5170 — the console
+
+      curl -X POST 'http://localhost:5180/parcel-numbers?count=5'
+      curl http://localhost:5181/api/notifications
+
+  Or without the SDK at all:  docker compose up --build   (console on :8090)
+
+  Secrets: none are required. In Production each service refuses to start without a
   connection string and a JWT issuer — see docs/architecture/03-TARGET-ARCHITECTURE.md.
   Local overrides go in the user-secret store, never in a file in the working tree:
 

@@ -1,0 +1,401 @@
+name: Deploy to Fly.io
+
+# P12 — tag-driven CI/CD with change detection and ordered deploy.
+#
+#   push tag v*
+#     ├── test                      gate: never deploy something the suite has not run against
+#     ├── detect                    path filters → what changed, plus anything not yet deployed
+#     ├── build                     matrix, GHA layer cache, one push to GHCR per image
+#     └── deploy in dependency order
+#           ├── databases           gated separately from the services
+#           ├── api, notifications  need their databases
+#           └── web                 needs the services it fronts
+#
+# Build once, deploy many: images are built in `build` and pulled by the same ref-name
+# tag in `deploy`. Nothing is rebuilt per environment.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: 'Deploy everything, ignoring change detection'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  PARCELNUMBERS_DB_APP: png-parcelnumbers-db
+  NOTIFICATIONS_DB_APP: png-notifications-db
+  API_APP: png-parcelnumbers-api
+  NOTIFICATIONS_APP: png-notifications
+  WEB_APP: png-web
+  PRIMARY_REGION: fra
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet test --solution ParcelNumberGenerator.slnx --configuration Release
+
+  detect:
+    name: Detect what to deploy
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      api: ${{ steps.decide.outputs.api }}
+      notifications: ${{ steps.decide.outputs.notifications }}
+      web: ${{ steps.decide.outputs.web }}
+      parcelnumbers_db: ${{ steps.decide.outputs.parcelnumbers_db }}
+      notifications_db: ${{ steps.decide.outputs.notifications_db }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Changed paths since the previous tag
+        id: changed
+        run: |
+          set -euo pipefail
+          previous=$(git tag --sort=-creatordate | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
+
+          if [ -z "$previous" ]; then
+            echo "No previous tag; treating everything as changed."
+            echo "files=ALL" >> "$GITHUB_OUTPUT"
+          else
+            echo "Comparing ${GITHUB_REF_NAME} against ${previous}"
+            {
+              echo 'files<<EOF'
+              git diff --name-only "${previous}" "${GITHUB_REF_NAME}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Decide
+        id: decide
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FILES: ${{ steps.changed.outputs.files }}
+          FORCE: ${{ inputs.deploy_all }}
+        run: |
+          set -euo pipefail
+
+          # An app that does not exist yet is ALWAYS selected, whatever the diff says.
+          # This is the rule that lets a cold estate come up from a single tag with no
+          # manual `fly launch`, and it is the one most often missing.
+          app_missing() {
+            ! flyctl status --app "$1" >/dev/null 2>&1
+          }
+
+          sel_api=false; sel_notifications=false; sel_web=false
+          sel_pndb=false; sel_ntdb=false
+
+          if [ "$FORCE" = "true" ] || [ "$FILES" = "ALL" ]; then
+            sel_api=true; sel_notifications=true; sel_web=true; sel_pndb=true; sel_ntdb=true
+          else
+            grep -qE '^flyio/postgres\.fly\.toml' <<< "$FILES" && sel_pndb=true || true
+            grep -qE '^flyio/notifications-postgres\.fly\.toml' <<< "$FILES" && sel_ntdb=true || true
+
+            shared='^(Directory\.|global\.json|src/ParcelNumberGenerator\.ServiceDefaults/)'
+            if grep -qE "$shared" <<< "$FILES"; then
+              sel_api=true; sel_notifications=true; sel_web=true
+            fi
+
+            grep -qE '^(src/ParcelNumberGenerator\.(Api|Domain|Data|Migrations)|flyio/parcelnumbers-api\.fly\.toml)' <<< "$FILES" && sel_api=true || true
+            grep -qE '^(src/ParcelNumberGenerator\.(Notifications|Contracts)|flyio/notifications\.fly\.toml)' <<< "$FILES" && sel_notifications=true || true
+            grep -qE '^(src/ParcelNumberGenerator\.Web/|flyio/web\.fly\.toml)' <<< "$FILES" && sel_web=true || true
+          fi
+
+          app_missing "$PARCELNUMBERS_DB_APP" && { echo "$PARCELNUMBERS_DB_APP missing; selecting."; sel_pndb=true; }
+          app_missing "$NOTIFICATIONS_DB_APP" && { echo "$NOTIFICATIONS_DB_APP missing; selecting."; sel_ntdb=true; }
+          app_missing "$API_APP" && { echo "$API_APP missing; selecting."; sel_api=true; }
+          app_missing "$NOTIFICATIONS_APP" && { echo "$NOTIFICATIONS_APP missing; selecting."; sel_notifications=true; }
+          app_missing "$WEB_APP" && { echo "$WEB_APP missing; selecting."; sel_web=true; }
+
+          {
+            echo "api=$sel_api"
+            echo "notifications=$sel_notifications"
+            echo "web=$sel_web"
+            echo "parcelnumbers_db=$sel_pndb"
+            echo "notifications_db=$sel_ntdb"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Deploy selection"
+            echo "- parcelnumbers-db: \`$sel_pndb\`"
+            echo "- notifications-db: \`$sel_ntdb\`"
+            echo "- api: \`$sel_api\`"
+            echo "- notifications: \`$sel_notifications\`"
+            echo "- web: \`$sel_web\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build image (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: detect
+    if: |
+      needs.detect.outputs.api == 'true'
+      || needs.detect.outputs.notifications == 'true'
+      || needs.detect.outputs.web == 'true'
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      # One broken image must not cancel the others mid-push, or the registry is left
+      # holding a partial set and the next deploy mixes versions.
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: src/ParcelNumberGenerator.Api/Dockerfile
+            image: parcelnumbers-api
+          - name: notifications
+            dockerfile: src/ParcelNumberGenerator.Notifications/Dockerfile
+            image: notifications
+          - name: web
+            dockerfile: src/ParcelNumberGenerator.Web/Dockerfile
+            image: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR requires a lowercase path and github.repository carries uppercase (PNG).
+      # Matrix legs cannot share job outputs without clobbering each other, so deploy
+      # jobs re-derive this same namespace and pull by the immutable ref-name tag —
+      # build once in this job, deploy that exact tag below, nothing rebuilt.
+      - name: Image namespace
+        id: ns
+        run: echo "ns=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.ns.outputs.ns }}/${{ matrix.image }}:${{ github.ref_name }}
+            ${{ steps.ns.outputs.ns }}/${{ matrix.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-databases:
+    name: Deploy databases
+    runs-on: ubuntu-latest
+    needs: [detect, build]
+    # Gated separately from the services, and accepts a skipped build: without
+    # `|| skipped`, change detection and ordering fight each other and any unchanged job
+    # in the middle of the chain blocks everything behind it.
+    if: |
+      always()
+      && needs.detect.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+      && (needs.detect.outputs.parcelnumbers_db == 'true' || needs.detect.outputs.notifications_db == 'true')
+
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Parcel numbers database
+        if: needs.detect.outputs.parcelnumbers_db == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! flyctl status --app "$PARCELNUMBERS_DB_APP" >/dev/null 2>&1; then
+            flyctl apps create "$PARCELNUMBERS_DB_APP" --org personal
+          fi
+          if ! flyctl volumes list --app "$PARCELNUMBERS_DB_APP" | grep -q pgdata; then
+            flyctl volumes create pgdata \
+              --app "$PARCELNUMBERS_DB_APP" --region "$PRIMARY_REGION" --size 3 --yes
+          fi
+          flyctl secrets set --app "$PARCELNUMBERS_DB_APP" --stage \
+            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
+          # --ha=false: an app with a volume scaled past one machine brings the second
+          # machine up against an empty volume.
+          flyctl deploy --config flyio/postgres.fly.toml --app "$PARCELNUMBERS_DB_APP" --ha=false --yes
+
+      - name: Notifications database
+        if: needs.detect.outputs.notifications_db == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! flyctl status --app "$NOTIFICATIONS_DB_APP" >/dev/null 2>&1; then
+            flyctl apps create "$NOTIFICATIONS_DB_APP" --org personal
+          fi
+          if ! flyctl volumes list --app "$NOTIFICATIONS_DB_APP" | grep -q png_notifications_pgdata; then
+            flyctl volumes create png_notifications_pgdata \
+              --app "$NOTIFICATIONS_DB_APP" --region "$PRIMARY_REGION" --size 3 --yes
+          fi
+          flyctl secrets set --app "$NOTIFICATIONS_DB_APP" --stage \
+            POSTGRES_PASSWORD="${{ secrets.NOTIFICATIONS_POSTGRES_PASSWORD }}"
+          flyctl deploy --config flyio/notifications-postgres.fly.toml --app "$NOTIFICATIONS_DB_APP" --ha=false --yes
+
+  deploy-api:
+    name: Deploy generator API
+    runs-on: ubuntu-latest
+    needs: [detect, build, deploy-databases]
+    if: |
+      always()
+      && needs.build.result == 'success'
+      && (needs.deploy-databases.result == 'success' || needs.deploy-databases.result == 'skipped')
+      && needs.detect.outputs.api == 'true'
+
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create, configure, deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! flyctl status --app "$API_APP" >/dev/null 2>&1; then
+            flyctl apps create "$API_APP" --org personal
+          fi
+          # --stage so secrets land with the deploy rather than triggering a second restart.
+          flyctl secrets set --app "$API_APP" --stage \
+            ConnectionStrings__parcelnumbersdb="${{ secrets.PARCELNUMBERS_DB_CONNECTION_STRING }}" \
+            Jwt__Authority="${{ secrets.JWT_AUTHORITY }}"
+          flyctl deploy \
+            --config flyio/parcelnumbers-api.fly.toml \
+            --app "$API_APP" \
+            --image "${REGISTRY}/${GITHUB_REPOSITORY,,}/parcelnumbers-api:${GITHUB_REF_NAME}" \
+            --yes
+
+  deploy-notifications:
+    name: Deploy notifications
+    runs-on: ubuntu-latest
+    needs: [detect, build, deploy-databases]
+    if: |
+      always()
+      && needs.build.result == 'success'
+      && (needs.deploy-databases.result == 'success' || needs.deploy-databases.result == 'skipped')
+      && needs.detect.outputs.notifications == 'true'
+
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create, configure, deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! flyctl status --app "$NOTIFICATIONS_APP" >/dev/null 2>&1; then
+            flyctl apps create "$NOTIFICATIONS_APP" --org personal
+          fi
+          flyctl secrets set --app "$NOTIFICATIONS_APP" --stage \
+            ConnectionStrings__notificationsdb="${{ secrets.NOTIFICATIONS_DB_CONNECTION_STRING }}" \
+            Jwt__Authority="${{ secrets.JWT_AUTHORITY }}"
+          flyctl deploy \
+            --config flyio/notifications.fly.toml \
+            --app "$NOTIFICATIONS_APP" \
+            --image "${REGISTRY}/${GITHUB_REPOSITORY,,}/notifications:${GITHUB_REF_NAME}" \
+            --yes
+
+      - name: Post-deploy assertion
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        # At least one assertion the health check cannot make. /health answers Healthy as
+        # soon as the process is up — including when persistence silently degraded to
+        # InMemory because the connection string was missing, which is a service that
+        # works perfectly and loses every notification on restart. The startup guard
+        # refuses that combination outright, so a service that answers at all is one that
+        # started with its production configuration present.
+        run: |
+          set -euo pipefail
+          base="https://${NOTIFICATIONS_APP}.fly.dev"
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 20 "${base}/health" >/dev/null; then
+              break
+            fi
+            echo "Health check not answering yet (attempt ${attempt}); waiting for cold start."
+            sleep 10
+          done
+          curl -fsS --max-time 20 "${base}/health" >/dev/null
+          echo "Readiness endpoint answered."
+
+  deploy-web:
+    name: Deploy console
+    runs-on: ubuntu-latest
+    needs: [detect, build, deploy-api, deploy-notifications]
+    if: |
+      always()
+      && needs.build.result == 'success'
+      && (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+      && (needs.deploy-notifications.result == 'success' || needs.deploy-notifications.result == 'skipped')
+      && needs.detect.outputs.web == 'true'
+
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create and deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! flyctl status --app "$WEB_APP" >/dev/null 2>&1; then
+            flyctl apps create "$WEB_APP" --org personal
+          fi
+          flyctl deploy \
+            --config flyio/web.fly.toml \
+            --app "$WEB_APP" \
+            --image "${REGISTRY}/${GITHUB_REPOSITORY,,}/web:${GITHUB_REF_NAME}" \
+            --yes
+
+      - name: Post-deploy assertion
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          base="https://${WEB_APP}.fly.dev"
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 20 "${base}/health" >/dev/null; then
+              break
+            fi
+            echo "Health check not answering yet (attempt ${attempt}); waiting for cold start."
+            sleep 10
+          done
+          curl -fsS --max-time 20 "${base}/" | grep -q "Parcel Operations Console"
+          echo "Console served its page."

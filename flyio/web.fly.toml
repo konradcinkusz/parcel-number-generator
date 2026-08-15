@@ -1,0 +1,43 @@
+# The operator console and its BFF — the estate's one public face (FRONTEND-BFF §1).
+#
+# This file is the production topology. The Aspire AppHost describes development only.
+
+app = "png-web"
+primary_region = "fra"
+
+[build]
+  dockerfile = "../src/ParcelNumberGenerator.Web/Dockerfile"
+  context = ".."
+
+[env]
+  ASPNETCORE_URLS = "http://+:8080"
+  ASPNETCORE_ENVIRONMENT = "Production"
+  OTEL_SERVICE_NAME = "png-web"
+
+  # The proxy's candidate ladder, rung 1 (FRONTEND-BFF §5). .flycast rather than
+  # .internal: flycast goes through Fly's proxy, which is what wakes a scaled-to-zero
+  # service on the first request — .internal would connect straight to a machine that
+  # is not running.
+  Services__Generator__BaseUrl = "http://png-parcelnumbers-api.flycast"
+  Services__Notifications__BaseUrl = "http://png-notifications.flycast"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+
+  # Scale to zero: an operator console with nobody looking at it costs nothing. The
+  # browser absorbs the cold boot; the BFF's own upstream timeout absorbs the services'.
+  min_machines_running = 0
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "30s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1

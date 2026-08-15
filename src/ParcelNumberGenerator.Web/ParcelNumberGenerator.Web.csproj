@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The operator console and its BFF. The browser talks only to this origin
+    (FRONTEND-BFF §1): static assets from wwwroot, and a server-side proxy that fronts
+    the generator and notification services. Client JavaScript never learns a backend
+    URL and never negotiates CORS with anything.
+
+    References the kernel only. This project must never compile against a service's
+    domain — it talks to the estate over HTTP against the published contracts, like any
+    other client.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../ParcelNumberGenerator.ServiceDefaults/ParcelNumberGenerator.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

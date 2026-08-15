@@ -1,0 +1,49 @@
+# The notification service — P7.
+#
+# This file is the production topology. The Aspire AppHost is not: it describes
+# development only, and treating it as a second runtime is what produces drift between
+# the two. Where both name the same variable, this file wins in deployed environments.
+
+app = "png-notifications"
+primary_region = "fra"
+
+[build]
+  # Both declared. Without an explicit context the build depends on the working directory
+  # and works locally while breaking in CI, or the reverse.
+  dockerfile = "../src/ParcelNumberGenerator.Notifications/Dockerfile"
+  context = ".."
+
+[env]
+  # Non-secret configuration only. Everything here is visible to anyone who can read the
+  # repository, which is the test for whether it belongs in this block.
+  ASPNETCORE_URLS = "http://+:8080"
+  ASPNETCORE_ENVIRONMENT = "Production"
+  DATABASE_PROVIDER = "PostgreSQL"
+  OTEL_SERVICE_NAME = "png-notifications"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+
+  # Scale to zero. Parcel events are pushed to this service and the operator console
+  # polls it through the BFF, both of which tolerate a cold boot. The moment another
+  # service calls it inside a synchronous request path, this becomes 1 — or that caller's
+  # timeout has to exceed a .NET cold start, and in practice that gets written down far
+  # more often than it gets configured.
+  min_machines_running = 0
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  # Covers .NET cold start plus the migration hosted service. Migrations run after Kestrel
+  # starts, so this window is about boot time rather than schema time — but a first deploy
+  # against an empty database pays for both.
+  grace_period = "60s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1

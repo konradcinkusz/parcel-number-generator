@@ -1,16 +1,23 @@
 name: CI
 
+# Runs the checks this repository claims to run. A config that is committed but never
+# executed is the failure mode this file exists to prevent.
+
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  DOTNET_VERSION: "10.0.x"
   SOLUTION: ParcelNumberGenerator.slnx
 
 jobs:
@@ -23,7 +30,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION }}
@@ -32,17 +39,9 @@ jobs:
         run: dotnet build ${{ env.SOLUTION }} --no-restore --configuration Release
 
       - name: Test
-        run: >-
-          dotnet test ${{ env.SOLUTION }} --no-build --configuration Release
-          --logger "trx;LogFileName=test-results.trx"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: "**/TestResults/*.trx"
-          if-no-files-found: ignore
+        # --solution, not a positional argument: the .NET 10 dotnet test driving
+        # Microsoft.Testing.Platform (opted into via global.json) requires it.
+        run: dotnet test --solution ${{ env.SOLUTION }} --configuration Release --no-build
 
   format:
     name: Format check
@@ -53,10 +52,22 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
 
       - name: Verify formatting
         run: dotnet format ${{ env.SOLUTION }} --verify-no-changes --severity error
+
+  architecture-guards:
+    name: Architecture guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shared kernel size ceiling (P2)
+        run: ./scripts/check-kernel-size.sh
+
+      - name: Runtime image major version matches the TFM (P6)
+        run: ./scripts/check-runtime-image-major.sh
 
   migrations:
     name: Migrations match the model
@@ -67,36 +78,58 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Install dotnet-ef
-        run: |
-          dotnet tool install --global dotnet-ef
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore ${{ env.SOLUTION }}
+        # Both are needed. `dotnet tool restore` gets dotnet-ef; `dotnet restore` writes
+        # the project.assets.json that dotnet-ef then loads the migrations projects from.
+        run: |
+          dotnet tool restore
+          dotnet restore ${{ env.SOLUTION }}
 
       # The guard that matters once a migration set exists. A model change without a matching
       # migration is invisible in development, where the in-memory provider builds the schema
       # from the model itself — and then fails on the first real deploy, because MigrateAsync
-      # only applies what is committed.
+      # only applies what is committed. Checked for every context this repository owns.
       - name: Check for pending model changes
         run: |
           set -euo pipefail
+          check() {
+            local provider="$1" project="$2" startup="$3" context="$4" conn_var="$5" conn="$6"
+            echo "── ${context} · ${provider} ──"
+            env DATABASE_PROVIDER="${provider}" "${conn_var}=${conn}" \
+              dotnet tool run dotnet-ef migrations has-pending-model-changes \
+              --project "src/${project}" \
+              --startup-project "src/${startup}" \
+              --context "${context}"
+          }
+
           for provider in PostgreSQL SqlServer; do
-            echo "── ${provider} ──"
-            ConnectionStrings__parcelnumbersdb="Host=localhost;Database=ci" \
-            DATABASE_PROVIDER="${provider}" \
-            dotnet ef migrations has-pending-model-changes \
-              --project "src/ParcelNumberGenerator.Migrations.${provider}" \
-              --startup-project src/ParcelNumberGenerator.Api \
-              --context ParcelNumbersDbContext
+            check "$provider" "ParcelNumberGenerator.Migrations.${provider}" \
+              ParcelNumberGenerator.Api ParcelNumbersDbContext \
+              ConnectionStrings__parcelnumbersdb "Host=localhost;Database=ci"
+            check "$provider" "ParcelNumberGenerator.Notifications.Migrations.${provider}" \
+              ParcelNumberGenerator.Notifications NotificationsDbContext \
+              ConnectionStrings__notificationsdb "Host=localhost;Database=ci"
           done
 
   docker:
-    name: Docker build
+    name: Docker build (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      # One broken image must not hide whether the others still build.
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: src/ParcelNumberGenerator.Api/Dockerfile
+            guard_expect: parcelnumbersdb
+          - name: notifications
+            dockerfile: src/ParcelNumberGenerator.Notifications/Dockerfile
+            guard_expect: notificationsdb
+          - name: web
+            dockerfile: src/ParcelNumberGenerator.Web/Dockerfile
+            guard_expect: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -107,19 +140,22 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: src/ParcelNumberGenerator.Api/Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: false
           load: true
-          tags: parcelnumbergenerator-api:ci
+          tags: parcelnumbergenerator-${{ matrix.name }}:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # The startup guard is a security control, so it is tested like one. Without this the
-      # guard could be deleted and every other job would stay green.
+      # guard could be deleted and every other job would stay green. The web image has no
+      # guard — it holds no data and no pool — so it is smoke-tested for the opposite:
+      # that it starts.
       - name: A production image refuses to start unconfigured
+        if: matrix.guard_expect != ''
         run: |
           set +e
-          output=$(docker run --rm -e ASPNETCORE_ENVIRONMENT=Production parcelnumbergenerator-api:ci 2>&1)
+          output=$(docker run --rm -e ASPNETCORE_ENVIRONMENT=Production parcelnumbergenerator-${{ matrix.name }}:ci 2>&1)
           status=$?
           set -e
           echo "$output"
@@ -127,7 +163,26 @@ jobs:
             echo "::error::Expected the service to refuse to start with no database configured"
             exit 1
           fi
-          echo "$output" | grep -q "parcelnumbersdb" || {
+          echo "$output" | grep -q "${{ matrix.guard_expect }}" || {
             echo "::error::Startup failure did not name the missing connection string"
             exit 1
           }
+
+      - name: The console image starts and serves its health endpoint
+        if: matrix.guard_expect == ''
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name web-smoke -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Production parcelnumbergenerator-web:ci
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS --max-time 3 http://localhost:8080/health >/dev/null 2>&1; then
+              echo "Health endpoint answered."
+              docker stop web-smoke
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::The console image never answered /health"
+          docker logs web-smoke || true
+          docker stop web-smoke || true
+          exit 1

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Secret scanning, locally, before the mistake becomes history (REPO-BASELINE §2).
+#
+# The CI job in .github/workflows/security.yml catches contributors without hooks; this
+# catches it a step earlier, while the commit can still be amended rather than rewritten.
+# Both exist because either one alone has a gap.
+#
+# Installed by scripts/setup.sh, or by hand:
+#   git config core.hooksPath .githooks
+#
+# If gitleaks is not installed this hook says so and lets the commit through. A hook that
+# blocks every commit on a machine missing an optional tool gets disabled within a day,
+# and a disabled hook protects nothing.
+
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+warning: gitleaks not found — staged changes were NOT scanned for secrets.
+
+  Install it:  https://github.com/gitleaks/gitleaks#installing
+  CI scans the full history on every push regardless, so this is a delay in feedback
+  rather than a hole. Install it anyway; finding it here is cheaper.
+
+EOF
+  exit 0
+fi
+
+echo "gitleaks: scanning staged changes…"
+
+if ! gitleaks protect --staged --redact --verbose; then
+  cat >&2 <<'EOF'
+
+error: gitleaks found a likely secret in the staged changes. The commit was blocked.
+
+  If it is a real secret: do not just unstage it. Rotate it first — the value is
+  compromised the moment it exists in a working tree you were about to publish.
+
+  If it is a false positive: add a narrowly scoped rule to .gitleaks.toml with a comment
+  saying why. Do not pass --no-verify; that is how the estate's one recorded credential
+  leak reached a tracked file.
+
+EOF
+  exit 1
+fi

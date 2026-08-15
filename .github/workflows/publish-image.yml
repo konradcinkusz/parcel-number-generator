@@ -1,4 +1,4 @@
-name: Publish image
+name: Publish images
 
 # Tag-driven (P12). GHCR rather than a platform-specific registry, so the same digest can be
 # pulled by Fly, by a customer's own cluster, or by a developer, without a rebuild.
@@ -13,11 +13,24 @@ permissions:
 
 jobs:
   publish:
-    name: Build and push
+    name: Build and push (${{ matrix.name }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
+    strategy:
+      # One broken image must not cancel the others mid-push, or the registry is left
+      # holding a partial set and the next deploy mixes versions.
+      fail-fast: false
+      matrix:
+        include:
+          - name: parcelnumbers-api
+            dockerfile: src/ParcelNumberGenerator.Api/Dockerfile
+          - name: notifications
+            dockerfile: src/ParcelNumberGenerator.Notifications/Dockerfile
+          - name: web
+            dockerfile: src/ParcelNumberGenerator.Web/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +52,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/parcelnumbers-api
+          images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -49,8 +62,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: src/ParcelNumberGenerator.Api/Dockerfile
-          # Cross-compiled rather than emulated — the Dockerfile pins its SDK stage to the
+          file: ${{ matrix.dockerfile }}
+          # Cross-compiled rather than emulated — each Dockerfile pins its SDK stage to the
           # build platform and passes TARGETARCH to `dotnet publish -a`.
           platforms: linux/amd64,linux/arm64
           push: true

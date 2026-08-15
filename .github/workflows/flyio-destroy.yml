@@ -1,0 +1,85 @@
+name: Destroy Fly.io environment
+
+# REPO-BASELINE §4 — destroy is behind a typed confirmation, and the teardown list carries
+# historical names. After a rename, resources under the old name outlive every cleanup and
+# bill forever precisely because nobody remembers them.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type the environment name exactly to confirm: png-dev'
+        required: true
+        type: string
+      destroy_volumes:
+        description: 'Also destroy the Postgres volumes (DATA LOSS, irreversible)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Check the typed confirmation
+        if: inputs.confirmation != 'png-dev'
+        run: |
+          echo "::error::Confirmation did not match. Type png-dev exactly."
+          exit 1
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy the apps
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Current names, plus every historical alias this environment has ever used.
+          # An app that was renamed keeps running under the old name otherwise.
+          apps=(
+            png-web
+            png-notifications
+            png-parcelnumbers-api
+            png-notifications-db
+            png-parcelnumbers-db
+            # Historical aliases — keep these rows forever, even after they stop existing.
+            # The notification service lived in the komunikaty repository before the
+            # consolidation recorded in ADR-0004.
+            png-notifications-dev
+            png-postgres-dev
+            komunikaty-notifications-dev
+          )
+
+          for app in "${apps[@]}"; do
+            if flyctl status --app "$app" >/dev/null 2>&1; then
+              echo "Destroying $app"
+              flyctl apps destroy "$app" --yes
+            else
+              echo "Skipping $app (does not exist)"
+            fi
+          done
+
+      - name: Destroy the volumes
+        if: inputs.destroy_volumes
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        # Destroying the app usually takes its volumes with it; this is the sweep for a
+        # volume orphaned by a partial teardown.
+        run: |
+          set -euo pipefail
+          for app in png-parcelnumbers-db png-notifications-db png-postgres-dev; do
+            if flyctl status --app "$app" >/dev/null 2>&1; then
+              flyctl volumes list --app "$app" --json \
+                | jq -r '.[].id' \
+                | while read -r volume; do
+                    echo "Destroying volume $volume on $app"
+                    flyctl volumes destroy "$volume" --app "$app" --yes
+                  done
+            fi
+          done
