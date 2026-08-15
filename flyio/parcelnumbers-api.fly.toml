@@ -1,0 +1,43 @@
+# The API. One Fly app, one fly.toml (P7).
+#
+# This file — not the AppHost — is the production topology. The AppHost describes the
+# development composition and nothing else; treating either as a second source of truth for
+# the other is what produces drift between them.
+
+app = "png-parcelnumbers-api"
+primary_region = "fra"
+
+[build]
+  dockerfile = "../src/ParcelNumberGenerator.Api/Dockerfile"
+
+# Non-secret configuration only. The connection string and the JWT issuer are set with
+# `fly secrets set`, never here.
+[env]
+  ASPNETCORE_URLS = "http://+:8080"
+  ASPNETCORE_ENVIRONMENT = "Production"
+  DATABASE_PROVIDER = "PostgreSQL"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+
+  # Zero, deliberately. Nothing calls this service inside another service's request path —
+  # a carrier's despatch system asks for numbers on its own schedule and can wait out a cold
+  # boot. Pin this to 1 the day something synchronous starts depending on it, or the caller's
+  # timeout has to cover a .NET cold start plus a Postgres wake.
+  min_machines_running = 0
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  # Covers .NET cold start plus the migration hosted service. Migrations run after Kestrel
+  # starts, so /health answers during schema work rather than the deploy timing out on it.
+  grace_period = "60s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1

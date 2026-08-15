@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Deliberately has no PackageReference at all. The pool arithmetic and the allocation
+       strategies are the part of this system worth testing, and they stay testable only
+       while nothing in here needs a database, a host or a configuration provider. -->
+
+</Project>

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ParcelNumberGenerator.Api/ParcelNumberGenerator.Api.csproj" />
+    <Project Path="src/ParcelNumberGenerator.AppHost/ParcelNumberGenerator.AppHost.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Data/ParcelNumberGenerator.Data.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Domain/ParcelNumberGenerator.Domain.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Migrations.PostgreSQL/ParcelNumberGenerator.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/ParcelNumberGenerator.Migrations.SqlServer/ParcelNumberGenerator.Migrations.SqlServer.csproj" />
+    <Project Path="src/ParcelNumberGenerator.ServiceDefaults/ParcelNumberGenerator.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ParcelNumberGenerator.Tests/ParcelNumberGenerator.Tests.csproj" />
+  </Folder>
+</Solution>
