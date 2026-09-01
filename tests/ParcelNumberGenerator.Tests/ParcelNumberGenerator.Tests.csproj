@@ -7,6 +7,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
@@ -14,6 +16,9 @@
     <ProjectReference Include="../../src/ParcelNumberGenerator.Api/ParcelNumberGenerator.Api.csproj" />
     <ProjectReference Include="../../src/ParcelNumberGenerator.Data/ParcelNumberGenerator.Data.csproj" />
     <ProjectReference Include="../../src/ParcelNumberGenerator.Domain/ParcelNumberGenerator.Domain.csproj" />
+    <!-- MigrateAsync applies only what is committed, and the committed migrations live
+         here. Without this reference the fixture would have nothing to apply. -->
+    <ProjectReference Include="../../src/ParcelNumberGenerator.Migrations.PostgreSQL/ParcelNumberGenerator.Migrations.PostgreSQL.csproj" />
     <ProjectReference Include="../../src/ParcelNumberGenerator.ServiceDefaults/ParcelNumberGenerator.ServiceDefaults.csproj" />
   </ItemGroup>
 
