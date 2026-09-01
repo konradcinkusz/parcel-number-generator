@@ -93,7 +93,6 @@ has already had to get past:
 | Startup guards asserted against a real production image | [`ci.yml`](.github/workflows/ci.yml) |
 | Warnings as errors, including NuGet advisories | [`Directory.Build.props`](Directory.Build.props) |
 | Non-root container user, unprivileged port | each `Dockerfile` |
+| CodeQL static analysis of the C# solution, per push and weekly | [`codeql.yml`](.github/workflows/codeql.yml) |
 
-There is **no SAST job**, and the reason is written down rather than left to be discovered:
-DEV-4 in [`DEVIATIONS.md`](docs/architecture/DEVIATIONS.md). Code scanning is free for
-public repositories, so that row closes with this one.
+Every one of these predates a report; none is a claim that the code is safe.

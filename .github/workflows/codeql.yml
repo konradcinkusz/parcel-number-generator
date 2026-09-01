@@ -1,0 +1,92 @@
+name: CodeQL
+
+# The SAST gate REPO-BASELINE §1 asks for. It is a separate workflow rather than a job in
+# secret-scan.yml because the triggers differ: that workflow runs on every branch, which is
+# right for a secret scan (a credential pushed anywhere is leaked) and wrong for an analysis
+# that compiles the whole solution — on a branch, the pull request run already covers it.
+#
+# READ THIS BEFORE ADDING A BADGE FOR THIS WORKFLOW.
+#
+# A CodeQL job existed here before and was deleted, along with a README badge claiming it
+# passed. The repository was private, so code scanning required GitHub Advanced Security:
+# the analysis ran to completion and was then rejected at upload with "Code scanning is not
+# enabled for this repository". Every push and every pull request was red, and the badge
+# said otherwise.
+#
+# That is the committed-but-never-executed pattern with decoration on top — it makes a
+# repository look like it has a SAST gate while providing none, and it trains everyone to
+# ignore a red check. The job was removed rather than left failing or wrapped in
+# continue-on-error, and DEV-4 tracked its absence with the reason.
+#
+# The repository became public on 2026-09-01, which makes code scanning free, so the job is
+# back. The precondition OPEN-SOURCE-RELEASE.md sets for going public at all — a
+# secret audit over full history, not just HEAD — was done first and is recorded in
+# docs/architecture/06-OPEN-SOURCE-READINESS.md §2.
+#
+# If this repository is ever made private again, this job starts failing at upload for the
+# same reason as before. Delete it and restore a DEV row; do not add continue-on-error.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Weekly, so a query added to CodeQL's own rule set after a quiet period still finds
+    # anything it matches here. The same reasoning as secret-scan.yml's schedule.
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+
+    # No other job in this repository sets one, so this is new rather than a convention
+    # being followed. It is here because GitHub's default is six hours: a wedged analysis
+    # without a timeout is indistinguishable from a slow queue, and nobody watches a
+    # scheduled run. Sized well above the ~3 minutes the full solution takes to build.
+    timeout-minutes: 20
+
+    permissions:
+      # The three the action needs, and no more. security-events: write is what uploads the
+      # results — without it the analysis runs and is rejected, which is the failure mode
+      # the comment above describes.
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+
+      - name: Setup .NET
+        # After init, so the build CodeQL observes is this one. global.json rather than a
+        # literal version, for the reason every other workflow here uses it: the SDK the
+        # analysis compiles with must be the SDK CI builds with.
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        # CodeQL extracts a compiled language by watching a real compilation, so this must
+        # actually compile rather than reuse anything. A fresh runner guarantees that; do
+        # not add --no-build or --no-restore here to save time, or the analysis silently
+        # covers nothing.
+        run: dotnet build ParcelNumberGenerator.slnx --configuration Release
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"
