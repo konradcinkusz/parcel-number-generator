@@ -39,5 +39,5 @@ COPY --from=build /app/publish .
 USER app
 
 ENV ASPNETCORE_URLS=http://+:8080
-LABEL org.opencontainers.image.source=https://github.com/konradcinkusz/PNG
+LABEL org.opencontainers.image.source=https://github.com/konradcinkusz/parcel-number-generator
 ENTRYPOINT ["dotnet", "ParcelNumberGenerator.Api.dll"]

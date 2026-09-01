@@ -7,8 +7,8 @@ over both.
 
 Nothing to do with the image format. **PNG = ParcelNumberGenerator.**
 
-[![CI](https://github.com/konradcinkusz/PNG/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcinkusz/PNG/actions/workflows/ci.yml)
-[![Secret scan](https://github.com/konradcinkusz/PNG/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/konradcinkusz/PNG/actions/workflows/secret-scan.yml)
+[![CI](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml)
+[![Secret scan](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml)
 
 ---
 
@@ -31,7 +31,7 @@ was harmonized in the move.
 ## Run it
 
 ```bash
-git clone https://github.com/konradcinkusz/PNG && cd PNG
+git clone https://github.com/konradcinkusz/parcel-number-generator && cd parcel-number-generator
 ./scripts/setup.sh
 dotnet run --project src/ParcelNumberGenerator.AppHost
 ```
@@ -122,8 +122,10 @@ possible and deliberately verbose: `Security__AllowAnonymousAccess=true`. CI run
 built images against `ASPNETCORE_ENVIRONMENT=Production` to assert the guards still fire.
 
 Secret scanning runs over full history on every push and weekly, plus a pre-commit hook
-(`scripts/setup.sh` installs it). Report a vulnerability by opening a security advisory
-rather than an issue.
+(`scripts/setup.sh` installs it). To report a vulnerability, open a
+[security advisory](https://github.com/konradcinkusz/parcel-number-generator/security/advisories/new)
+rather than an issue — [`SECURITY.md`](SECURITY.md) says what is in scope, and why a
+credential-free clone answering without a token is not.
 
 ## Deploy
 
@@ -179,10 +181,12 @@ WinForms application).
 | [`04-MIGRATION-PLAN.md`](docs/architecture/04-MIGRATION-PLAN.md) | The phases, including the ones not yet done |
 | [`05-DECISIONS.md`](docs/architecture/05-DECISIONS.md) | The generator rewrite's decisions, with the alternatives rejected |
 | [`DEVIATIONS.md`](docs/architecture/DEVIATIONS.md) | The whole system's open deviations, dated, with what closes each |
+| [`06-OPEN-SOURCE-READINESS.md`](docs/architecture/06-OPEN-SOURCE-READINESS.md) | The full-history secret audit, and the four release steps no commit can perform |
 | [`docs/decisions/`](docs/decisions/) | Four ADRs — repository identity, token posture, the parcel-number format, the consolidation |
 
 ## Contributing
 
+[`CONTRIBUTING.md`](CONTRIBUTING.md) has the house rules; the short version is
 `./scripts/setup.sh`, then `dotnet test --solution ParcelNumberGenerator.slnx`. CI runs
 the tests, `dotnet format`, migration drift checks for both services, the architecture
 guards (kernel size ceiling, runtime-image majors), three image builds with startup-guard
