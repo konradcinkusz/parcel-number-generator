@@ -168,6 +168,9 @@ scripts/                                           Onboarding, migration generat
 
 ## Documentation
 
+[`docs/index.html`](docs/index.html) indexes everything below with one line each on the
+question it answers — open it from a clone, or browse the table here.
+
 This repository was modernized in August 2026 from a 2018 .NET Framework 4.5.2 solution
 against [`konradcinkusz/architecture-standards`](https://github.com/konradcinkusz/architecture-standards),
 then absorbed the notification service from `komunikaty` (itself modernized from a 2019
