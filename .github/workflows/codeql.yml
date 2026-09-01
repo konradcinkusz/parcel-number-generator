@@ -64,7 +64,7 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -75,7 +75,7 @@ jobs:
         # After init, so the build CodeQL observes is this one. global.json rather than a
         # literal version, for the reason every other workflow here uses it: the SDK the
         # analysis compiles with must be the SDK CI builds with.
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
