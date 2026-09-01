@@ -16,7 +16,6 @@
 | DEV-1 | Nothing is deployed — the tag-driven workflow can create the whole estate, but no `png-*` app exists and no request has reached a running instance | P7, P12 | 2026-08-15 | Blocked on repository secrets and one `v*` tag |
 | DEV-2 | No identity provider configured; a deployment is open unless one is set | P5 | 2026-08-15 | Blocked on an owner decision |
 | DEV-3 | No integration test against a real PostgreSQL or SQL Server | P13 | 2026-08-15 | Open |
-| DEV-4 | No CodeQL/SAST job in CI | REPO-BASELINE §1 | 2026-08-15 | Blocked on GitHub Advanced Security or the repository going public — unblocked by step 1 of [`06-OPEN-SOURCE-READINESS.md`](06-OPEN-SOURCE-READINESS.md) §7 |
 | DEV-7 | The repository is private, and the four steps that release it are not commits | OPEN-SOURCE-RELEASE | 2026-09-01 | Blocked on an owner decision. The audit that gates them is done and clean |
 
 ---
@@ -74,24 +73,6 @@ exercising its migrations.
 **Interim risk.** A duplicate-detection regression specific to a real provider would pass
 CI.
 
-### DEV-4 — No CodeQL/SAST job
-
-**What.** There is no static analysis job. The repository is private, so code scanning
-requires GitHub Advanced Security; the analysis runs and is then rejected at upload with
-*"Code scanning is not enabled for this repository"*. This repository previously carried
-exactly that job, permanently red on every push, plus a README badge claiming it passed —
-the committed-but-never-executed pattern, with decoration. The job and badge were removed;
-the reasoning lives as a comment in `.github/workflows/secret-scan.yml` where the job
-would otherwise be.
-
-**What closes it.** Enable GitHub Advanced Security, **or** make the repository public —
-code scanning is free there, but OPEN-SOURCE-RELEASE.md's full-history secret audit is the
-precondition, not a follow-up. **That audit is now done and clean**
-([`06-OPEN-SOURCE-READINESS.md`](06-OPEN-SOURCE-READINESS.md) §2), so the precondition is
-satisfied and this row is one settings change away from closable. Then restore the job from
-the comment — and the badge only once it is green, because the badge that was removed
-alongside it claimed a scan that could not run.
-
 ### DEV-7 — The repository is private
 
 **What.** Publishing is four steps, none of which a commit can perform: flip visibility,
@@ -107,11 +88,13 @@ re-privating the repository does not reach the clones and forks that already exi
 **What closes it.** Steps 1 and 2 depend on nothing and can be done today — the gate that
 made them unsafe, a credential reachable somewhere in the 2018 history, was audited over
 all 16 commits and all 248 blobs on 2026-09-01 and found clean, with nothing to rotate and
-no history rewrite needed. Steps 3 and 4 wait on DEV-4 and DEV-1 respectively.
+no history rewrite needed. Step 1 is done, step 3 is done (DEV-4 closed), and step 4 waits
+on DEV-1.
 
-**Interim risk.** None from staying private. The cost is the other direction: DEV-4 cannot
-close while the repository is private, so the system has no SAST gate for as long as this
-row is open.
+**Interim risk.** None. The repository is public as of 2026-09-01, which closed DEV-4 —
+code scanning is free for public repositories and `.github/workflows/codeql.yml` now runs
+it. What remains here is steps 2 and 4 of
+[`06-OPEN-SOURCE-READINESS.md`](06-OPEN-SOURCE-READINESS.md) §7.
 
 ## Accepted deliberately
 

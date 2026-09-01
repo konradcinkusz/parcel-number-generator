@@ -157,22 +157,23 @@ search. Proposed:
 
 Do them in this order.
 
-1. **Flip the repository to public.** Everything in §2 that would have made this unsafe has
-   been checked. Settings → General → Danger Zone.
+1. ~~**Flip the repository to public.**~~ **Done, 2026-09-01.** Everything in §2 that would
+   have made this unsafe was checked first, which is the order this guide exists to
+   enforce.
 2. **Set the description and the topics** from §6. One paste each.
-3. **Restore the CodeQL job.** Code scanning is free for public repositories, so DEV-4's
-   blocker disappears the moment step 1 lands. The job to restore is described in the
-   comment that sits where it used to be, in
-   [`secret-scan.yml`](../../.github/workflows/secret-scan.yml): `github/codeql-action/init`
-   with `languages: csharp`, a build step, `analyze`, and `permissions: actions: read,
-   contents: read, security-events: write`. Delete the DEV-4 row when it is green — and
-   restore the badge only then, because the previous badge claimed a scan that could not
-   run, which is what got both of them removed.
+3. ~~**Restore the CodeQL job.**~~ **Done.**
+   [`codeql.yml`](../../.github/workflows/codeql.yml) analyses the C# solution on every
+   push to `master`, every pull request, and weekly. DEV-4 is deleted from the ledger. The
+   history that made it worth a deviation row moved into that workflow's own header
+   comment, where the next person editing it will meet it. The badge is **not** restored
+   and must not be until the job has gone green — the previous badge claimed a scan that
+   could not run, which is what got both of them removed. Tracked as issue #19.
 4. **After the first `v*` tag, flip the three GHCR packages to public** — §5. Not before;
    the packages do not exist until then.
 
-Steps 3 and 4 depend on DEV-1, which is separately blocked. Steps 1 and 2 do not depend on
-anything.
+Step 1 landed on 2026-09-01 and step 3 with it. Step 2 depends on nothing and is issue
+#20. Step 4 still depends on DEV-1 — the packages do not exist until something is
+published — and is issue #29.
 
 ## 8. What going public does not change
 
