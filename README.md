@@ -184,6 +184,14 @@ WinForms application).
 | [`06-OPEN-SOURCE-READINESS.md`](docs/architecture/06-OPEN-SOURCE-READINESS.md) | The full-history secret audit, and the four release steps no commit can perform |
 | [`docs/decisions/`](docs/decisions/) | Four ADRs — repository identity, token posture, the parcel-number format, the consolidation |
 
+## Roadmap
+
+[`ROADMAP.md`](ROADMAP.md) is the plan from here: four phases, thirteen issues, tracked in
+[#30](https://github.com/konradcinkusz/parcel-number-generator/issues/30). Nine of the
+thirteen close a numbered row in [`DEVIATIONS.md`](docs/architecture/DEVIATIONS.md), which
+is this repository's own register of what it does not yet satisfy — so the roadmap is
+finished when that ledger's *Open* table is empty.
+
 ## Contributing
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the house rules; the short version is
