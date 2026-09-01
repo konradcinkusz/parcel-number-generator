@@ -151,7 +151,9 @@ will rarely be available. That is the correct outcome rather than an obstacle.
   rule does not apply, because an infra failure says nothing about the code.
 - **Never** skip, disable or quarantine a test to get green. Never push an empty commit or
   close-and-reopen to kick CI.
-- Merge convention: squash, matching the repository's merged history.
+- Merge convention: **merge commit**, matching every pull request in this repository's
+  history — #1, #2, #3, #10 and #16 were all merged that way, and each feature branch's
+  commits are preserved underneath. Not squash.
 
 ## 7. Non-goals
 
