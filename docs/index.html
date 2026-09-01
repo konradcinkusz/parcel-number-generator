@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PNG — Parcel Number Generator · documentation</title>
+<meta name="description" content="Documentation index for the PNG warehousing system: a parcel-number generator, a notification service, and an operator console.">
+<style>
+  /* Self-contained on purpose: no font, stylesheet or script is fetched at render time,
+     so this page works from a file:// load, from a clone with no network, and from Pages
+     alike. DEV-5 rejected a Node build pipeline for the console; it would be a stranger
+     choice still for one documentation page. */
+  :root {
+    --bg: #fbfbfa;      --panel: #ffffff;   --ink: #16181d;
+    --muted: #5c6370;   --rule: #e2e4e9;    --accent: #1f5fa9;
+    --badge-bg: #eef1f6; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;    --panel: #1b1e24;   --ink: #e6e8ec;
+      --muted: #9aa2b1; --rule: #2a2e37;    --accent: #7fb2f0;
+      --badge-bg: #232833; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  .sub { color: var(--muted); font-size: .95rem; margin: 0 0 1.25rem; }
+  .lede { font-size: 1.08rem; max-width: 46rem; margin: 0 0 1rem; }
+  .disambig {
+    display: inline-block; font-size: .9rem; color: var(--muted);
+    background: var(--badge-bg); border-radius: 6px; padding: .45rem .7rem;
+  }
+  h2 {
+    font-size: 1.05rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 2.75rem 0 .35rem; font-weight: 600;
+  }
+  h2 + .note { color: var(--muted); font-size: .92rem; margin: 0 0 1.1rem; max-width: 46rem; }
+  .grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1rem 1.1rem; box-shadow: var(--shadow);
+  }
+  .card a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .card a:hover, .card a:focus { text-decoration: underline; }
+  .card p { margin: .4rem 0 0; font-size: .92rem; color: var(--muted); }
+  .svc { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); margin-bottom: .5rem; }
+  .svc .card p { color: var(--ink); }
+  .svc .card strong { display: block; margin-bottom: .3rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .88em; background: var(--badge-bg); padding: .12em .38em; border-radius: 4px;
+  }
+  pre {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1rem 1.1rem; overflow-x: auto; font-size: .88rem; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  footer {
+    margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: .9rem;
+  }
+  footer a { color: var(--accent); }
+  a.plain { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>PNG — Parcel Number Generator</h1>
+  <p class="sub">Documentation index</p>
+  <p class="lede">
+    The PNG warehousing system: issues parcel tracking numbers from a fixed pool — never the
+    same number twice, honouring sub-ranges withheld from allocation — records the
+    notifications a warehouse raises against those parcels, and gives operators one console
+    over both.
+  </p>
+  <p class="disambig">Nothing to do with the image format. <strong>PNG = ParcelNumberGenerator.</strong></p>
+</header>
+
+<h2>The system</h2>
+<p class="note">Three services, one repository, built to
+  <a class="plain" href="https://github.com/konradcinkusz/architecture-standards"><code>konradcinkusz/architecture-standards</code></a>.</p>
+<div class="svc">
+  <div class="card">
+    <strong>Generator API</strong>
+    <p>Allocates tracking numbers from a finite pool with exclusions, concurrency-safe,
+       without leaking daily volume. The hard part of the system, and its system of record.</p>
+  </div>
+  <div class="card">
+    <strong>Notifications</strong>
+    <p>Records events raised against parcels and the warehouse, and tracks which of them an
+       operator still has to acknowledge. Normalizes every parcel-number dialect at the edge.</p>
+  </div>
+  <div class="card">
+    <strong>Console</strong>
+    <p>The operator UI and its BFF. The browser talks only to this origin; the BFF proxies to
+       both services.</p>
+  </div>
+</div>
+
+<h2>Start here</h2>
+<div class="grid">
+  <div class="card">
+    <a href="../README.md">README</a>
+    <p>What it is, how to run it three ways, the API surface, and the configuration model.</p>
+  </div>
+  <div class="card">
+    <a href="../ROADMAP.md">ROADMAP.md</a>
+    <p>The plan from here: four phases, and the definition of done this repository is
+       measured against.</p>
+  </div>
+  <div class="card">
+    <a href="../CONTRIBUTING.md">CONTRIBUTING.md</a>
+    <p>How to get it running, what CI will check, and the four house rules that get a pull
+       request sent back.</p>
+  </div>
+  <div class="card">
+    <a href="../SECURITY.md">SECURITY.md</a>
+    <p>How to report a vulnerability privately, what is in scope, and why a
+       credential-free clone answering without a token is not a finding.</p>
+  </div>
+</div>
+
+<h2>Architecture</h2>
+<p class="note">Each document's summary below is its own opening line, so this page cannot
+  drift into a second, contradictory account of the system.</p>
+<div class="grid">
+  <div class="card">
+    <a href="architecture/01-CURRENT-STATE.md">01 — Current state</a>
+    <p>What this repository was before the modernization, recorded from its source rather
+       than from its README.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/02-GAP-ANALYSIS.md">02 — Gap analysis</a>
+    <p>Every principle in the reference architecture, the gap as it stood at commit
+       <code>c1258ed</code>, and where it is now. Ordered by severity of the gap, not by
+       principle number.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/03-TARGET-ARCHITECTURE.md">03 — Target architecture</a>
+    <p>What the repository is now, measured against the reference architecture.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/04-MIGRATION-PLAN.md">04 — Migration plan</a>
+    <p>The plan this modernization followed, and what is left — because a plan that stops at
+       “it compiles” is not a plan for a service that has to run somewhere.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/05-DECISIONS.md">05 — Decisions</a>
+    <p>The choices made during the modernization, with the reasoning and the alternatives
+       that were rejected.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/06-OPEN-SOURCE-READINESS.md">06 — Open-source readiness</a>
+    <p>The full-history secret audit with the command that produced it, and the release
+       steps no commit can perform.</p>
+  </div>
+  <div class="card">
+    <a href="architecture/DEVIATIONS.md">DEVIATIONS.md</a>
+    <p>The register of principles this repository does not currently satisfy: what, which
+       principle, since when, and why it is still open. An acknowledged deviation is a
+       decision; an unacknowledged one is drift.</p>
+  </div>
+</div>
+
+<h2>Decisions</h2>
+<p class="note">Architecture decision records. A superseded ADR is kept rather than deleted —
+  the reasoning is why the current shape is the current shape.</p>
+<div class="grid">
+  <div class="card">
+    <a href="decisions/0001-what-this-repository-is.md">ADR-0001 — What this repository is</a>
+    <p>Superseded by ADR-0004; the repository it describes is deprecated.</p>
+  </div>
+  <div class="card">
+    <a href="decisions/0002-token-validation-only.md">ADR-0002 — Validates tokens, cannot mint them</a>
+    <p>Accepted, amended by ADR-0004. Why both services hold no key material, and why a
+       shared symmetric secret was rejected.</p>
+  </div>
+  <div class="card">
+    <a href="decisions/0003-parcel-number-format.md">ADR-0003 — Parcel number format</a>
+    <p>Accepted, amended by ADR-0004. The canonical <code>PNG-NNNNNNNN-C</code> form, and who
+       is allowed to mint one.</p>
+  </div>
+  <div class="card">
+    <a href="decisions/0004-one-repository-for-the-png-system.md">ADR-0004 — One repository for the PNG system</a>
+    <p>Accepted. Why the notification service moved here, and what was harmonized in the
+       move.</p>
+  </div>
+</div>
+
+<h2>Operations</h2>
+<div class="grid">
+  <div class="card">
+    <a href="../flyio/INFRASTRUCTURE-ANALYSIS.md">Infrastructure analysis</a>
+    <p>Topology, sizing and cost, reasoned per app rather than assumed — so the cost of a
+       shape is arguable rather than discovered on an invoice.</p>
+  </div>
+  <div class="card">
+    <a href="../flyio/SECRETS.md">Secrets and configuration</a>
+    <p>Every value the estate reads, where it comes from, and which tier it sits in, with
+       troubleshooting keyed on literal error text.</p>
+  </div>
+  <div class="card">
+    <a href="../scripts/README.md">Operational scripts</a>
+    <p>Onboarding, migration generation and the CI guards. Every script runs from any
+       directory and says what it did.</p>
+  </div>
+</div>
+
+<h2>Run it</h2>
+<pre><code>git clone https://github.com/konradcinkusz/parcel-number-generator
+cd parcel-number-generator
+./scripts/setup.sh
+dotnet run --project src/ParcelNumberGenerator.AppHost</code></pre>
+<p class="note">No credential is required at any level. Each service falls back to an
+  in-memory database, so a fresh clone runs — with reduced durability rather than not at
+  all. Without the .NET SDK: <code>docker compose up --build</code>, console on port 8090.</p>
+
+<footer>
+  <a href="https://github.com/konradcinkusz/parcel-number-generator">konradcinkusz/parcel-number-generator</a>
+  · MIT · <a href="../SECURITY.md">Report a vulnerability privately</a>
+</footer>
+
+</div>
+</body>
+</html>
