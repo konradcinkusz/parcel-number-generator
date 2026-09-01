@@ -1,1 +1,16 @@
+# Blank issues are off so every report arrives through a template that asks for repro and
+# impact. The contact links below are the escape hatches for the two things that must not
+# become a public issue.
 blank_issues_enabled: false
+
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/konradcinkusz/parcel-number-generator/security/advisories/new
+    about: >-
+      Privately, never as an issue — an issue is world-readable the moment it is filed.
+      See SECURITY.md for what is in scope.
+  - name: Question, or an idea that is not a bug yet
+    url: https://github.com/konradcinkusz/parcel-number-generator/issues?q=is%3Aissue
+    about: >-
+      Search the existing issues first. If it is genuinely a defect or a feature, use one
+      of the templates above.

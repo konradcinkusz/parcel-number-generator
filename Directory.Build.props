@@ -19,7 +19,7 @@
   <PropertyGroup>
     <Company>konradcinkusz</Company>
     <Product>Parcel Number Generator</Product>
-    <RepositoryUrl>https://github.com/konradcinkusz/PNG</RepositoryUrl>
+    <RepositoryUrl>https://github.com/konradcinkusz/parcel-number-generator</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
