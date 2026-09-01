@@ -42,8 +42,10 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         try
         {
-            container = new PostgreSqlBuilder()
-                .WithImage(Image)
+            // The image goes to the constructor: 4.14.0 obsoletes the parameterless one,
+            // and TreatWarningsAsErrors turns that into a build failure rather than a
+            // warning nobody reads.
+            container = new PostgreSqlBuilder(Image)
                 .WithDatabase("parcelnumbers")
                 .Build();
 
@@ -139,7 +141,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 /// safe: each uses numbers no other test touches.
 /// </remarks>
 [CollectionDefinition(Name)]
-public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>
+public sealed class RealPostgres : ICollectionFixture<PostgresFixture>
 {
     public const string Name = "postgres";
 }

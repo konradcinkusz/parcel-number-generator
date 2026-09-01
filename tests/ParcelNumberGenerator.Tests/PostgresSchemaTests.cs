@@ -20,7 +20,7 @@ namespace ParcelNumberGenerator.Tests;
 /// generated from, and agree with itself no matter what the database contains.
 /// </para>
 /// </remarks>
-[Collection(PostgresCollection.Name)]
+[Collection(RealPostgres.Name)]
 public sealed class PostgresSchemaTests(PostgresFixture postgres)
 {
     [Fact]
@@ -32,10 +32,12 @@ public sealed class PostgresSchemaTests(PostgresFixture postgres)
 
         // Applied, not pending. An empty set here means MigrateAsync ran everything the
         // repository has committed.
-        IEnumerable<string> pending = await db.Database.GetPendingMigrationsAsync();
+        IEnumerable<string> pending =
+            await db.Database.GetPendingMigrationsAsync(TestContext.Current.CancellationToken);
         Assert.Empty(pending);
 
-        IEnumerable<string> applied = await db.Database.GetAppliedMigrationsAsync();
+        IEnumerable<string> applied =
+            await db.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(applied);
     }
 
@@ -54,7 +56,7 @@ public sealed class PostgresSchemaTests(PostgresFixture postgres)
                 WHERE table_name = 'used_numbers'
                 ORDER BY column_name
                 """)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // The table exists and carries exactly the two columns the model declares, under
         // the snake_case names OnModelCreating maps them to.
@@ -90,7 +92,7 @@ public sealed class PostgresSchemaTests(PostgresFixture postgres)
                   AND constraints.constraint_type = 'PRIMARY KEY'
                 ORDER BY key_column.ordinal_position
                 """)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(["number"], keyColumns);
     }
@@ -113,12 +115,13 @@ public sealed class PostgresSchemaTests(PostgresFixture postgres)
         await using (ParcelNumbersDbContext first = postgres.CreateContext())
         {
             first.UsedNumbers.Add(new UsedNumber { Number = Number, AllocatedAtUtc = DateTimeOffset.UtcNow });
-            await first.SaveChangesAsync();
+            await first.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using ParcelNumbersDbContext second = postgres.CreateContext();
         second.UsedNumbers.Add(new UsedNumber { Number = Number, AllocatedAtUtc = DateTimeOffset.UtcNow });
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => second.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => second.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 }
