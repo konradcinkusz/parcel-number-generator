@@ -24,6 +24,12 @@ jobs:
   build:
     name: Build and test
     runs-on: ubuntu-latest
+
+    # The suite now starts a PostgreSQL container (DEV-3), so this job can hang on a
+    # Docker pull where before it could only hang on a compile. GitHub's default is six
+    # hours; a wedged pull without a bound is indistinguishable from a slow queue.
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v7
 
@@ -41,6 +47,20 @@ jobs:
       - name: Test
         # --solution, not a positional argument: the .NET 10 dotnet test driving
         # Microsoft.Testing.Platform (opted into via global.json) requires it.
+        run: dotnet test --solution ${{ env.SOLUTION }} --configuration Release --no-build
+
+      # The persistence tests skip rather than fail when Docker is unreachable, because
+      # scripts/setup.sh treats Docker as optional and the README's whole no-SDK-no-Docker
+      # path depends on that staying true. A fallback nothing exercises is a fallback that
+      # quietly stops working, so this runs the same suite again with DOCKER_HOST pointed
+      # at a closed port and requires it to still pass.
+      #
+      # --no-build: this reuses the build above, so it costs one more test run and no
+      # compile.
+      - name: The suite still passes with no Docker
+        env:
+          DOCKER_HOST: tcp://127.0.0.1:1
+          TESTCONTAINERS_RYUK_DISABLED: "true"
         run: dotnet test --solution ${{ env.SOLUTION }} --configuration Release --no-build
 
   format:
