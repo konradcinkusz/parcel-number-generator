@@ -1,14 +1,23 @@
 # PNG — Parcel Number Generator
 
+[![Ask me anything](https://flat.badgen.net/static/Ask%20me/anything?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz "Ask me anything")
+[![GitHub license](https://flat.badgen.net/github/license/konradcinkusz/parcel-number-generator?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/blob/master/LICENSE "GitHub license")
+[![Maintained](https://flat.badgen.net/static/Maintained/yes?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/commits/master "Maintained")
+[![GitHub branches](https://flat.badgen.net/github/branches/konradcinkusz/parcel-number-generator?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/branches "GitHub branches")
+[![GitHub commits](https://flat.badgen.net/github/commits/konradcinkusz/parcel-number-generator?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/commits/master "GitHub commits")
+[![GitHub issues](https://flat.badgen.net/github/issues/konradcinkusz/parcel-number-generator?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/issues "GitHub issues")
+[![GitHub pull requests](https://flat.badgen.net/github/prs/konradcinkusz/parcel-number-generator?icon=github&color=black&scale=1.01)](https://github.com/konradcinkusz/parcel-number-generator/pulls "GitHub pull requests")
+
+[![CI](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml "CI")
+[![CodeQL](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/codeql.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/codeql.yml "CodeQL")
+[![Secret scan](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml "Secret scan")
+
 The PNG warehousing system: issues parcel tracking numbers from a fixed pool — never the
 same number twice, honouring sub-ranges withheld from allocation — records the
 notifications a warehouse raises against those parcels, and gives operators one console
 over both.
 
 Nothing to do with the image format. **PNG = ParcelNumberGenerator.**
-
-[![CI](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/ci.yml)
-[![Secret scan](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/konradcinkusz/parcel-number-generator/actions/workflows/secret-scan.yml)
 
 ---
 
