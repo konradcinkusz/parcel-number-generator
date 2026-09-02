@@ -12,11 +12,16 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/ParcelNumberGenerator.Notifications/ParcelNumberGenerator.Notifications.csproj" />
+    <!-- MigrateAsync applies only what is committed, and the committed migrations live
+         here. Without this reference the fixture would have nothing to apply. -->
+    <ProjectReference Include="../../src/ParcelNumberGenerator.Notifications.Migrations.PostgreSQL/ParcelNumberGenerator.Notifications.Migrations.PostgreSQL.csproj" />
   </ItemGroup>
 
 </Project>

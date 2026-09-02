@@ -15,8 +15,7 @@
 |---|---|---|---|---|
 | DEV-1 | Nothing is deployed — the tag-driven workflow can create the whole estate, but no `png-*` app exists and no request has reached a running instance | P7, P12 | 2026-08-15 | Blocked on repository secrets and one `v*` tag |
 | DEV-2 | No identity provider configured; a deployment is open unless one is set | P5 | 2026-08-15 | Blocked on an owner decision |
-| DEV-3 | No integration test against a real PostgreSQL or SQL Server | P13 | 2026-08-15 | Open |
-| DEV-7 | The repository is private, and the four steps that release it are not commits | OPEN-SOURCE-RELEASE | 2026-09-01 | Blocked on an owner decision. The audit that gates them is done and clean |
+| DEV-7 | The open-source release is not finished: of its four steps, two remain and neither is a commit | OPEN-SOURCE-RELEASE | 2026-09-01 | Public since 2026-09-01, CodeQL restored. Description/topics (#20) and the GHCR packages (#29) are outstanding |
 
 ---
 
@@ -57,23 +56,7 @@ layer — see the accepted deviation on the frontend below.
 **Interim risk.** Bounded by the guards: an open production deployment cannot happen by
 omission, only by someone setting a flag whose name says what it does.
 
-### DEV-3 — No integration test against a real relational provider
-
-**What.** Persistence is tested against EF Core's in-memory provider. The generator's
-whole concurrency design rests on a primary-key violation being raised by a real engine
-and reported as a lost race; the in-memory provider raises it from its change tracker, so
-the guarantee is covered by construction (the key is in both committed migration sets,
-asserted by `SchemaTests`) rather than by execution.
-
-**What closes it.** A Testcontainers-backed PostgreSQL fixture running the committed
-migrations, with N concurrent `TryReserveAsync` calls for the same number asserting exactly
-one winner — and, now that the notification service lives here too, the same fixture
-exercising its migrations.
-
-**Interim risk.** A duplicate-detection regression specific to a real provider would pass
-CI.
-
-### DEV-7 — The repository is private
+### DEV-7 — The open-source release is unfinished
 
 **What.** Publishing is four steps, none of which a commit can perform: flip visibility,
 set the description and topics, restore CodeQL, and flip the three GHCR packages after the
