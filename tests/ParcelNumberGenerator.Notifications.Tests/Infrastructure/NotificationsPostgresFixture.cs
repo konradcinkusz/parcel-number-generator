@@ -29,7 +29,7 @@ namespace ParcelNumberGenerator.Notifications.Tests.Infrastructure;
 /// </remarks>
 public sealed class NotificationsPostgresFixture : IAsyncLifetime
 {
-    private const string Image = "postgres:17-alpine-DELIBERATELY-BROKEN-FOR-MUTATION-TEST";
+    private const string Image = "postgres:17-alpine";
 
     private PostgreSqlContainer? container;
 
