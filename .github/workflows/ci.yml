@@ -25,7 +25,7 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
 
-    # The suite now starts a PostgreSQL container (DEV-3), so this job can hang on a
+    # The suite starts a PostgreSQL container, so this job can hang on a
     # Docker pull where before it could only hang on a compile. GitHub's default is six
     # hours; a wedged pull without a bound is indistinguishable from a slow queue.
     timeout-minutes: 20
