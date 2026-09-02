@@ -47,6 +47,15 @@ jobs:
       - name: Test
         # --solution, not a positional argument: the .NET 10 dotnet test driving
         # Microsoft.Testing.Platform (opted into via global.json) requires it.
+        #
+        # PNG_REQUIRE_DOCKER turns an unavailable PostgreSQL fixture from a skip into a
+        # failure. GitHub-hosted runners always have Docker, so here the fixture is required
+        # to work — without this, a fixture broken so that it never starts would skip every
+        # persistence test and this job would stay green while testing nothing. The run
+        # summary cannot distinguish the two on its own: a dynamic skip is counted as a
+        # success, so `skipped: 0` is what both look like.
+        env:
+          PNG_REQUIRE_DOCKER: "1"
         run: dotnet test --solution ${{ env.SOLUTION }} --configuration Release --no-build
 
       # The persistence tests skip rather than fail when Docker is unreachable, because

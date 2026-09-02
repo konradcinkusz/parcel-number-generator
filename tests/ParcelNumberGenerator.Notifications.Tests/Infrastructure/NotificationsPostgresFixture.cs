@@ -94,12 +94,35 @@ public sealed class NotificationsPostgresFixture : IAsyncLifetime
         return new NotificationsDbContext(options);
     }
 
+    /// <summary>
+    /// Set in an environment that is required to have Docker, so an unavailable fixture
+    /// fails there instead of skipping.
+    /// </summary>
+    public const string RequireDockerVariable = "PNG_REQUIRE_DOCKER";
+
+    /// <summary>Whether this environment has declared that Docker must be present.</summary>
+    public static bool DockerIsRequired =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RequireDockerVariable));
+
+    /// <summary>Skips the calling test when Docker is unavailable.</summary>
+    /// <remarks>
+    /// Unless <see cref="RequireDockerVariable"/> is set. See the generator suite's fixture
+    /// for the reasoning: a fixture broken so that it never starts would skip everywhere
+    /// and CI would stay green while testing nothing.
+    /// </remarks>
     public void SkipIfUnavailable()
     {
-        if (!Available)
+        if (Available)
         {
-            Assert.Skip(SkipReason);
+            return;
         }
+
+        Assert.False(
+            DockerIsRequired,
+            $"{RequireDockerVariable} is set, so the PostgreSQL fixture was required to " +
+            $"start and did not: {SkipReason}");
+
+        Assert.Skip(SkipReason);
     }
 
     public async ValueTask DisposeAsync()
