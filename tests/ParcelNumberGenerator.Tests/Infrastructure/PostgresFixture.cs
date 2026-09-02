@@ -28,7 +28,7 @@ namespace ParcelNumberGenerator.Tests.Infrastructure;
 /// </remarks>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private const string Image = "postgres:17-alpine";
+    private const string Image = "postgres:17-alpine-DELIBERATELY-BROKEN-FOR-MUTATION-TEST";
 
     private PostgreSqlContainer? container;
 
@@ -114,13 +114,37 @@ public sealed class PostgresFixture : IAsyncLifetime
         return new ParcelNumbersDbContext(options);
     }
 
+    /// <summary>
+    /// Set in an environment that is required to have Docker, so an unavailable fixture
+    /// fails there instead of skipping.
+    /// </summary>
+    public const string RequireDockerVariable = "PNG_REQUIRE_DOCKER";
+
+    /// <summary>Whether this environment has declared that Docker must be present.</summary>
+    public static bool DockerIsRequired =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RequireDockerVariable));
+
     /// <summary>Skips the calling test when Docker is unavailable.</summary>
+    /// <remarks>
+    /// Unless <see cref="RequireDockerVariable"/> is set, in which case an unavailable
+    /// fixture is a failure rather than a skip. Without that, a fixture broken so that it
+    /// never starts would skip every test that depends on it, everywhere, and CI would stay
+    /// green while testing nothing — and the summary cannot tell the two apart, because a
+    /// dynamic skip is counted as a success.
+    /// </remarks>
     public void SkipIfUnavailable()
     {
-        if (!Available)
+        if (Available)
         {
-            Assert.Skip(SkipReason);
+            return;
         }
+
+        Assert.False(
+            DockerIsRequired,
+            $"{RequireDockerVariable} is set, so the PostgreSQL fixture was required to " +
+            $"start and did not: {SkipReason}");
+
+        Assert.Skip(SkipReason);
     }
 
     public async ValueTask DisposeAsync()
